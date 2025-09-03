@@ -1,14 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
 
-async function requestPermission() {
-    return await invoke('plugin:audio-permissions|request_permission', {
+async function requestAudioPermissions() {
+    return await invoke('plugin:audio-permissions|request_audio_permissions', {
         payload: {},
     });
 }
-async function checkPermission() {
-    return await invoke('plugin:audio-permissions|check_permission', {
+async function checkAudioPermissions() {
+    return await invoke('plugin:audio-permissions|check_audio_permissions', {
         payload: {},
     });
 }
 
-export { checkPermission, requestPermission };
+export { checkAudioPermissions, requestAudioPermissions };

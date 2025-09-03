@@ -5,7 +5,7 @@ use crate::Result;
 use crate::AudioPermissionsExt;
 
 #[command]
-pub(crate) async fn request_permission<R: Runtime>(
+pub(crate) async fn request_audio_permissions<R: Runtime>(
     app: AppHandle<R>,
     payload: PermissionRequest,
 ) -> Result<PermissionResponse> {
@@ -13,7 +13,7 @@ pub(crate) async fn request_permission<R: Runtime>(
 }
 
 #[command]
-pub(crate) async fn check_permission<R: Runtime>(
+pub(crate) async fn check_audio_permissions<R: Runtime>(
     app: AppHandle<R>,
     payload: PermissionRequest,
 ) -> Result<PermissionResponse> {

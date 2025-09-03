@@ -2,16 +2,16 @@
 
 var core = require('@tauri-apps/api/core');
 
-async function requestPermission() {
-    return await core.invoke('plugin:audio-permissions|request_permission', {
+async function requestAudioPermissions() {
+    return await core.invoke('plugin:audio-permissions|request_audio_permissions', {
         payload: {},
     });
 }
-async function checkPermission() {
-    return await core.invoke('plugin:audio-permissions|check_permission', {
+async function checkAudioPermissions() {
+    return await core.invoke('plugin:audio-permissions|check_audio_permissions', {
         payload: {},
     });
 }
 
-exports.checkPermission = checkPermission;
-exports.requestPermission = requestPermission;
+exports.checkAudioPermissions = checkAudioPermissions;
+exports.requestAudioPermissions = requestAudioPermissions;

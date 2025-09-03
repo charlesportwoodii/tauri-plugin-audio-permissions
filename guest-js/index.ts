@@ -4,14 +4,14 @@ export interface PermissionResponse {
   granted: boolean;
 }
 
-export async function requestPermission(): Promise<PermissionResponse> {
-  return await invoke<PermissionResponse>('plugin:audio-permissions|request_permission', {
+export async function requestAudioPermissions(): Promise<PermissionResponse> {
+  return await invoke<PermissionResponse>('plugin:audio-permissions|request_audio_permissions', {
     payload: {},
   });
 }
 
-export async function checkPermission(): Promise<PermissionResponse> {
-  return await invoke<PermissionResponse>('plugin:audio-permissions|check_permission', {
+export async function checkAudioPermissions(): Promise<PermissionResponse> {
+  return await invoke<PermissionResponse>('plugin:audio-permissions|check_audio_permissions', {
     payload: {},
   });
 }
