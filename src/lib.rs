@@ -9,6 +9,8 @@ pub use models::*;
 mod desktop;
 #[cfg(mobile)]
 mod mobile;
+#[cfg(target_os = "macos")]
+mod macos_permissions;
 
 mod commands;
 mod error;

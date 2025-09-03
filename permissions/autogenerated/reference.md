@@ -45,32 +45,6 @@ Denies the check_permission command without any pre-configured scope.
 <tr>
 <td>
 
-`audio-permissions:allow-ping`
-
-</td>
-<td>
-
-Enables the ping command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-`audio-permissions:deny-ping`
-
-</td>
-<td>
-
-Denies the ping command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
 `audio-permissions:allow-request-permission`
 
 </td>
