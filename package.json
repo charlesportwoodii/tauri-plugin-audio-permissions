@@ -1,7 +1,7 @@
 {
-  "name": "tauri-plugin-audio-permissions-api",
+  "name": "tauri-plugin-audio-permissions",
   "version": "0.1.0",
-  "author": "You",
+  "author": "Charles R. Portwood II",
   "description": "",
   "type": "module",
   "types": "./dist-js/index.d.ts",
@@ -20,8 +20,8 @@
     "build": "rollup -c",
     "prepublishOnly": "pnpm build",
     "pretest": "pnpm build",
-    "example": "cd examples/tauri-app && npm install && npm run tauri dev",
-    "example:build": "cd examples/tauri-app && npm install && npm run tauri build"
+    "example": "cd examples/tauri-app && npm install && yarn tauri dev",
+    "example:build": "cd examples/tauri-app && npm install && yarn tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": ">=2.0.0-beta.6"

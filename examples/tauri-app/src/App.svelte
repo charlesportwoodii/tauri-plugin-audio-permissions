@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { requestPermission, checkPermission } from 'tauri-plugin-audio-permissions-api'
+  import { requestPermission, checkPermission } from 'tauri-plugin-audio-permissions'
   import { trace, info, error, attachConsole } from '@tauri-apps/plugin-log'
 
 	let permissionStatus = $state('unknown');

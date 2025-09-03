@@ -18,7 +18,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-log": "~2",
-    "tauri-plugin-audio-permissions-api": "file:../../"
+    "tauri-plugin-audio-permissions": "file:../../"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
