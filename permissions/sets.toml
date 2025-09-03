@@ -1,0 +1,21 @@
+# Audio Permissions Plugin - Permission Sets
+
+"$schema" = "../schemas/schema.json"
+
+# Read-only permission set (only check, no request)
+[[set]]
+identifier = "read-only"
+description = "Allows checking audio permission status but not requesting permissions"
+permissions = ["allow-check-permission"]
+
+# Full access permission set
+[[set]]
+identifier = "full-access"
+description = "Allows both checking and requesting audio permissions"
+permissions = ["allow-check-permission", "allow-request-permission"]
+
+# Minimal permission set for basic permission checking
+[[set]]
+identifier = "minimal"
+description = "Minimal permissions for basic audio permission checking"
+permissions = ["allow-check-permission"]

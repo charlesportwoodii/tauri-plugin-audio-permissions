@@ -1,0 +1,3 @@
+[default]
+description = "Default permissions for the audio permissions plugin"
+permissions = ["allow-request-permission", "allow-check-permission"]

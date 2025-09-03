@@ -1,0 +1,30 @@
+# Platform-specific Audio Permissions
+
+"$schema" = "../schemas/schema.json"
+
+# Mobile-only permissions (where permission requests are most relevant)
+[[permission]]
+identifier = "allow-request-permission-mobile"
+description = "Enables audio permission requests on mobile platforms only"
+commands.allow = ["request_permission"]
+platforms = ["android", "iOS"]
+
+[[permission]]
+identifier = "allow-check-permission-mobile"
+description = "Enables audio permission checking on mobile platforms only"
+commands.allow = ["check_permission"]
+platforms = ["android", "iOS"]
+
+# Desktop permissions (where permissions are typically granted by default)
+[[permission]]
+identifier = "allow-check-permission-desktop"
+description = "Enables audio permission checking on desktop platforms"
+commands.allow = ["check_permission"]
+platforms = ["windows", "macOS", "linux"]
+
+# Full mobile permission set
+[[permission]]
+identifier = "mobile-audio-permissions"
+description = "Complete audio permission management for mobile platforms"
+commands.allow = ["request_permission", "check_permission"]
+platforms = ["android", "iOS"]
