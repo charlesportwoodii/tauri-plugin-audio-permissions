@@ -4,12 +4,13 @@ A Tauri v2 plugin that provides a comprehensive API for managing audio recording
 
 ## Features
 
-- ✅ **Complete Permission Management** - Request and check microphone permissions
+- ✅ **Complete Permission Management** - Request and check microphone and notification permissions
 - ✅ **Background Recording Support** - Keep audio recording active when app is in background
 - ✅ **Foreground Service Management** - Android foreground service with notifications
 - ✅ **Audio Session Control** - iOS AVAudioSession management
 - ✅ **Platform Parity** - Identical API across Android and iOS
 - ✅ **Auto Configuration** - Automatic manifest/Info.plist injection
+- ✅ **Unified Permission API** - Single API for multiple permission types (audio, notification)
 - ✅ **Desktop Support** - Returns granted by default (desktop platforms don't require explicit audio permissions)
 
 ## Installation
@@ -62,24 +63,35 @@ Here's the recommended pattern for using this plugin with Rodio/CPAL:
 #### Rust Backend
 
 ```rust
-use tauri_plugin_audio_permissions::{AudioPermissionsExt, PermissionRequest, NotificationUpdate};
+use tauri_plugin_audio_permissions::{AudioPermissionsExt, PermissionRequest, PermissionType, NotificationUpdate};
 
 #[tauri::command]
 async fn start_recording<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<bool, String> {
-    // Check permission
+    // Check audio permission
     let permission = app.audio_permissions()
-        .check_permission(PermissionRequest {})
+        .check_permission(PermissionRequest {
+            permission_type: PermissionType::Audio,
+        })
         .map_err(|e| e.to_string())?;
 
     if !permission.granted {
         let response = app.audio_permissions()
-            .request_permission(PermissionRequest {})
+            .request_permission(PermissionRequest {
+                permission_type: PermissionType::Audio,
+            })
             .map_err(|e| e.to_string())?;
 
         if !response.granted {
             return Ok(false);
         }
     }
+
+    // Request notification permission (Android 13+ requires this for foreground service notifications)
+    let notif_permission = app.audio_permissions()
+        .request_permission(PermissionRequest {
+            permission_type: PermissionType::Notification,
+        })
+        .map_err(|e| e.to_string())?;
 
     // Start foreground service for background recording
     let service = app.audio_permissions()
@@ -134,22 +146,33 @@ import {
   startForegroundService,
   stopForegroundService,
   updateNotification,
-  isServiceRunning
-} from 'tauri-plugin-audio-permissions-api';
-import { info, error, warn, debug } from '@tauri-apps/plugin-log';
+  isServiceRunning,
+  PermissionType
+} from 'tauri-plugin-audio-permissions';
+import { info, error } from '@tauri-apps/plugin-log';
 
 async function startRecording() {
   try {
-    const permissionStatus = await checkPermission();
+    // Check audio permission
+    const permissionStatus = await checkPermission({
+      permissionType: PermissionType.Audio
+    });
 
     if (!permissionStatus.granted) {
-      const permissionResult = await requestPermission();
+      const permissionResult = await requestPermission({
+        permissionType: PermissionType.Audio
+      });
 
       if (!permissionResult.granted) {
-        error('Permission denied');
+        error('Audio permission denied');
         return false;
       }
     }
+
+    // Request notification permission (Android 13+ requires this)
+    const notifResult = await requestPermission({
+      permissionType: PermissionType.Notification
+    });
 
     const serviceResult = await startForegroundService();
 
@@ -163,8 +186,8 @@ async function startRecording() {
       error('Failed to start foreground service');
       return false;
     }
-  } catch (error) {
-    error('Error starting recording:', error);
+  } catch (err) {
+    error('Error starting recording:', err);
     return false;
   }
 }
@@ -178,8 +201,8 @@ async function stopRecording() {
     if (result.stopped) {
       info('Background audio session stopped');
     }
-  } catch (error) {
-    error('Error stopping recording:', error);
+  } catch (err) {
+    error('Error stopping recording:', err);
   }
 }
 
@@ -190,8 +213,8 @@ async function updateRecordingNotification(elapsed: string) {
       title: 'Recording Audio',
       message: `Recording time: ${elapsed}`
     });
-  } catch (error) {
-    error('Error updating notification:', error);
+  } catch (err) {
+    error('Error updating notification:', err);
   }
 }
 
@@ -200,23 +223,56 @@ async function checkRecordingStatus() {
   try {
     const status = await isServiceRunning();
     return status.running;
-  } catch (error) {
-    error('Error checking status:', error);
+  } catch (err) {
+    error('Error checking status:', err);
     return false;
   }
 }
 ```
 
-## Troubleshooting
+## API Reference
 
-### Android: Service not starting
-- Ensure `RECORD_AUDIO` permission is granted before calling `start_foreground_service()`
-- Check logcat for errors: `adb logcat | grep AudioPermission`
+### TypeScript API
 
-### iOS: Background audio stops
-- Ensure you call `start_foreground_service()` before starting audio recording
-- Verify `UIBackgroundModes` includes `"audio"` in Info.plist
+#### Permission Management
 
-### Desktop: Service commands not working
-- Service management commands are no-ops on desktop - this is expected behavior
-- Only use service commands conditionally on mobile platforms
+```typescript
+// PermissionType enum
+const PermissionType = {
+  Audio: 'audio',
+  Notification: 'notification',
+} as const;
+
+// Request audio permission (default)
+const audioResult = await requestPermission();
+// or explicitly
+const audioResult = await requestPermission({ permissionType: PermissionType.Audio });
+
+// Request notification permission
+const notifResult = await requestPermission({ permissionType: PermissionType.Notification });
+
+// Check permission
+const status = await checkPermission({ permissionType: PermissionType.Audio });
+```
+
+#### Background Service Management
+
+```typescript
+// Start foreground service/audio session
+const result = await startForegroundService();
+// result.started: boolean
+
+// Stop foreground service/audio session
+const result = await stopForegroundService();
+// result.stopped: boolean
+
+// Update notification (Android only, no-op on iOS)
+await updateNotification({
+  title: 'Recording',
+  message: 'Duration: 00:05:23'
+});
+
+// Check if service is running
+const status = await isServiceRunning();
+// status.running: boolean
+```

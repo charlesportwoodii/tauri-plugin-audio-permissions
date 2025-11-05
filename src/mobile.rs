@@ -36,7 +36,7 @@ impl<R: Runtime> AudioPermissions<R> {
       crate::models::PermissionType::Notification => {
         self
           .0
-          .run_mobile_plugin("requestNotificationPermission", ())
+          .run_mobile_plugin("requestPermission", payload)
           .map_err(Into::into)
       }
     }
