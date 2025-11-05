@@ -26,5 +26,12 @@ platforms = ["windows", "macOS", "linux"]
 [[permission]]
 identifier = "mobile-audio-permissions"
 description = "Complete audio permission management for mobile platforms"
-commands.allow = ["request_permission", "check_permission"]
+commands.allow = [
+  "request_permission",
+  "check_permission",
+  "start_foreground_service",
+  "stop_foreground_service",
+  "update_notification",
+  "is_service_running"
+]
 platforms = ["android", "iOS"]

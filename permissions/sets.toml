@@ -11,8 +11,15 @@ permissions = ["allow-check-permission"]
 # Full access permission set
 [[set]]
 identifier = "full-access"
-description = "Allows both checking and requesting audio permissions"
-permissions = ["allow-check-permission", "allow-request-permission"]
+description = "Allows both checking and requesting audio permissions and managing background audio sessions"
+permissions = [
+  "allow-check-permission",
+  "allow-request-permission",
+  "allow-start-foreground-service",
+  "allow-stop-foreground-service",
+  "allow-update-notification",
+  "allow-is-service-running"
+]
 
 # Minimal permission set for basic permission checking
 [[set]]

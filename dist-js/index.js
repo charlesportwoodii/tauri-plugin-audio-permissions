@@ -10,5 +10,19 @@ async function checkPermission() {
         payload: {},
     });
 }
+async function startForegroundService() {
+    return await invoke('plugin:audio-permissions|start_foreground_service');
+}
+async function stopForegroundService() {
+    return await invoke('plugin:audio-permissions|stop_foreground_service');
+}
+async function updateNotification(update) {
+    return await invoke('plugin:audio-permissions|update_notification', {
+        payload: update,
+    });
+}
+async function isServiceRunning() {
+    return await invoke('plugin:audio-permissions|is_service_running');
+}
 
-export { checkPermission, requestPermission };
+export { checkPermission, isServiceRunning, requestPermission, startForegroundService, stopForegroundService, updateNotification };

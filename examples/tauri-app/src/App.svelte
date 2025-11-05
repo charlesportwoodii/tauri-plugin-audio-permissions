@@ -1,17 +1,27 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { requestPermission, checkPermission } from 'tauri-plugin-audio-permissions'
-  import { trace, info, error, attachConsole } from '@tauri-apps/plugin-log'
+  import { onMount, onDestroy } from 'svelte';
+  import {
+    requestPermission,
+    checkPermission,
+    startForegroundService,
+    stopForegroundService,
+    updateNotification,
+    isServiceRunning
+  } from 'tauri-plugin-audio-permissions'
+  import { info, error } from '@tauri-apps/plugin-log'
 
 	let permissionStatus = $state('unknown');
 	let isLoading = $state(false);
 	let logs = $state([]);
 	let autoCheckComplete = $state(false);
+	let isRecording = $state(false);
+	let elapsedSeconds = $state(0);
+	let timerInterval = $state(null);
 
 	// Derived states using $derived
 	let statusClass = $derived({
 		'unknown': 'status-unknown',
-		'granted': 'status-granted', 
+		'granted': 'status-granted',
 		'denied': 'status-denied',
 		'error': 'status-error'
 	}[permissionStatus] || 'status-unknown');
@@ -19,7 +29,7 @@
 	let statusText = $derived({
 		'unknown': 'Unknown',
 		'granted': 'Granted ✅',
-		'denied': 'Denied ❌', 
+		'denied': 'Denied ❌',
 		'error': 'Error ⚠️'
 	}[permissionStatus] || 'Unknown');
 
@@ -31,7 +41,7 @@
 	async function performPermissionCheck() {
 		isLoading = true;
 		addLog('Checking current permission status...', 'info');
-		
+
 		try {
 			const result = await checkPermission();
 			addLog(`Permission check result: ${JSON.stringify(result)}`, 'success');
@@ -49,7 +59,7 @@
 	async function performPermissionRequest() {
 		isLoading = true;
 		addLog('Requesting audio permission...', 'info');
-		
+
 		try {
 			const result = await requestPermission();
 			addLog(`Permission request result: ${JSON.stringify(result)}`, 'success');
@@ -66,17 +76,17 @@
 
 	async function autoInitializePermissions() {
 		addLog('=== Auto-initializing audio permissions ===', 'info');
-		
+
 		// First, check current status
 		const hasPermission = await performPermissionCheck();
-		
+
 		if (!hasPermission && permissionStatus !== 'error') {
 			addLog('Permission not granted, automatically requesting...', 'info');
 			await performPermissionRequest();
 		} else if (hasPermission) {
 			addLog('Permission already granted!', 'success');
 		}
-		
+
 		autoCheckComplete = true;
 		addLog('=== Auto-initialization complete ===', 'info');
 	}
@@ -91,9 +101,126 @@
 		await performPermissionRequest();
 	}
 
+	// Recording functions
+	async function startRecording() {
+		isLoading = true;
+		addLog('=== Starting recording session ===', 'info');
+
+		try {
+			// Check permission first
+			const permission = await checkPermission();
+			if (!permission.granted) {
+				addLog('Permission not granted, requesting...', 'info');
+				const result = await requestPermission();
+				if (!result.granted) {
+					addLog('Permission denied, cannot start recording', 'error');
+					permissionStatus = 'denied';
+					return;
+				}
+				permissionStatus = 'granted';
+			}
+
+			// Start foreground service
+			addLog('Starting foreground service...', 'info');
+			const serviceResult = await startForegroundService();
+
+			if (serviceResult.started) {
+				addLog('Foreground service started successfully', 'success');
+				isRecording = true;
+				elapsedSeconds = 0;
+				startTimer();
+
+				// In real app: start actual audio recording here
+				addLog('🎤 Recording started (simulated)', 'success');
+			} else {
+				addLog('Failed to start foreground service', 'error');
+			}
+		} catch (err) {
+			addLog(`Error starting recording: ${err}`, 'error');
+			error(`Failed to start recording: ${err}`);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	async function stopRecording() {
+		isLoading = true;
+		addLog('=== Stopping recording session ===', 'info');
+
+		try {
+			stopTimer();
+
+			// In real app: stop actual audio recording here
+			addLog('🎤 Stopping audio recording...', 'info');
+
+			// Stop foreground service
+			addLog('Stopping foreground service...', 'info');
+			const result = await stopForegroundService();
+
+			if (result.stopped) {
+				addLog('Foreground service stopped successfully', 'success');
+				isRecording = false;
+				elapsedSeconds = 0;
+				addLog('=== Recording session ended ===', 'success');
+			} else {
+				addLog('Failed to stop foreground service', 'error');
+			}
+		} catch (err) {
+			addLog(`Error stopping recording: ${err}`, 'error');
+			error(`Failed to stop recording: ${err}`);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	async function checkServiceStatus() {
+		try {
+			const status = await isServiceRunning();
+			addLog(`Service status check: ${status.running ? 'Running' : 'Not running'}`, 'info');
+			return status.running;
+		} catch (err) {
+			addLog(`Error checking service status: ${err}`, 'error');
+			return false;
+		}
+	}
+
+	function startTimer() {
+		timerInterval = setInterval(async () => {
+			elapsedSeconds++;
+
+			// Update notification every second (Android only)
+			try {
+				await updateNotification({
+					title: 'Recording Audio',
+					message: `Recording time: ${formatTime(elapsedSeconds)}`
+				});
+			} catch (err) {
+				// Silently fail - not critical
+			}
+		}, 1000);
+	}
+
+	function stopTimer() {
+		if (timerInterval) {
+			clearInterval(timerInterval);
+			timerInterval = null;
+		}
+	}
+
+	function formatTime(seconds) {
+		const mins = Math.floor(seconds / 60);
+		const secs = seconds % 60;
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+
 	// Auto-initialize on component mount
 	onMount(() => {
 		autoInitializePermissions();
+	});
+
+	// Cleanup on unmount
+	onDestroy(() => {
+		stopTimer();
 	});
 </script>
 
@@ -120,7 +247,7 @@
         <span class="spinner">🔄</span>
       {/if}
     </div>
-    
+
     {#if autoCheckComplete}
       <p class="status-description">
         {#if permissionStatus === 'granted'}
@@ -136,17 +263,68 @@
     {/if}
   </div>
 
+  <div class="recording-section">
+    <h2>Background Recording Demo</h2>
+    {#if isRecording}
+      <div class="recording-indicator">
+        <span class="recording-dot"></span>
+        Recording: {formatTime(elapsedSeconds)}
+      </div>
+    {:else}
+      <div class="recording-indicator stopped">
+        Not Recording
+      </div>
+    {/if}
+
+    <div class="recording-controls">
+      <button
+        onclick="{startRecording}"
+        disabled={isLoading || isRecording}
+        class="btn btn-success"
+      >
+        {#if isLoading}
+          Starting...
+        {:else}
+          🎤 Start Recording
+        {/if}
+      </button>
+      <button
+        onclick="{stopRecording}"
+        disabled={isLoading || !isRecording}
+        class="btn btn-danger"
+      >
+        {#if isLoading}
+          Stopping...
+        {:else}
+          ⏹️ Stop Recording
+        {/if}
+      </button>
+      <button
+        onclick="{checkServiceStatus}"
+        disabled={isLoading}
+        class="btn btn-secondary"
+      >
+        Check Service Status
+      </button>
+    </div>
+
+    <p class="help-text">
+      This demonstrates the foreground service API. On mobile, backgrounding the app
+      will keep the recording active. On Android, you'll see a persistent notification.
+    </p>
+  </div>
+
   <div class="controls-section">
-    <h3>Manual Controls</h3>
-    <button 
-      onclick="{manualCheckPermission}" 
+    <h3>Permission Controls</h3>
+    <button
+      onclick="{manualCheckPermission}"
       disabled={isLoading}
       class="btn btn-secondary"
     >
       {isLoading ? 'Checking...' : 'Check Permission'}
     </button>
-    <button 
-      onclick="{manualRequestPermission}" 
+    <button
+      onclick="{manualRequestPermission}"
       disabled={isLoading}
       class="btn btn-primary"
     >
@@ -243,6 +421,68 @@
     margin-top: 10px;
   }
 
+  .recording-section {
+    margin: 30px 0;
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+  }
+
+  .recording-indicator {
+    font-size: 20px;
+    font-weight: bold;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .recording-indicator {
+    background-color: #d4edda;
+    color: #155724;
+    border: 2px solid #c3e6cb;
+  }
+
+  .recording-indicator.stopped {
+    background-color: #f0f0f0;
+    color: #666;
+    border: 2px solid #ccc;
+  }
+
+  .recording-dot {
+    width: 12px;
+    height: 12px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .recording-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 15px 0;
+  }
+
+  .help-text {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    font-style: italic;
+    margin-top: 15px;
+  }
+
   .controls-section {
     margin: 20px 0;
   }
@@ -282,6 +522,24 @@
 
   .btn-secondary:hover:not(:disabled) {
     background-color: #545b62;
+  }
+
+  .btn-success {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .btn-success:hover:not(:disabled) {
+    background-color: #218838;
+  }
+
+  .btn-danger {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background-color: #c82333;
   }
 
   .logs-section {

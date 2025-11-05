@@ -1,0 +1,6 @@
+/src/main/java/com/alaydriem/bvc/plugin/audio_permissions/dev/generated
+/src/main/jniLibs/**/*.so
+/src/main/assets/tauri.conf.json
+/tauri.build.gradle.kts
+/proguard-tauri.pro
+/tauri.properties

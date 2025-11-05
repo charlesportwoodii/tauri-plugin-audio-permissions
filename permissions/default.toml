@@ -1,3 +1,10 @@
 [default]
 description = "Default permissions for the audio permissions plugin"
-permissions = ["allow-request-permission", "allow-check-permission"]
+permissions = [
+  "allow-request-permission",
+  "allow-check-permission",
+  "allow-start-foreground-service",
+  "allow-stop-foreground-service",
+  "allow-update-notification",
+  "allow-is-service-running"
+]

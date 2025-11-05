@@ -6,6 +6,10 @@ Default permissions for the audio permissions plugin
 
 - `allow-request-permission`
 - `allow-check-permission`
+- `allow-start-foreground-service`
+- `allow-stop-foreground-service`
+- `allow-update-notification`
+- `allow-is-service-running`
 
 ## Permission Table
 
@@ -245,7 +249,7 @@ Allows checking audio permission status but not requesting permissions
 </td>
 <td>
 
-Allows both checking and requesting audio permissions
+Allows both checking and requesting audio permissions and managing background audio sessions
 
 </td>
 </tr>
