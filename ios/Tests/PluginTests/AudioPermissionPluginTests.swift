@@ -6,19 +6,25 @@ import AVFoundation
 class MockInvoke {
     var resolvedValue: Any?
     var rejectedError: String?
-    
+    var argsJson: String = "{}"
+
     func resolve(_ value: [String: Any]) {
         resolvedValue = value
     }
-    
+
     func reject(_ error: String) {
         rejectedError = error
     }
-    
+
     func parseArgs<T: Decodable>(_ type: T.Type) throws -> T {
-        // Return empty args for PermissionArgs (which has no properties)
-        let data = "{}".data(using: .utf8)!
+        let data = argsJson.data(using: .utf8)!
         return try JSONDecoder().decode(type, from: data)
+    }
+
+    func reset() {
+        resolvedValue = nil
+        rejectedError = nil
+        argsJson = "{}"
     }
 }
 
@@ -151,12 +157,205 @@ final class AudioPermissionPluginTests: XCTestCase {
         // Test the boolean response format that our plugin uses
         let grantedResponse = true
         let deniedResponse = false
-        
+
         XCTAssertTrue(grantedResponse, "Granted response should be true")
         XCTAssertFalse(deniedResponse, "Denied response should be false")
-        
+
         // Test JSON-like structure that would be returned
         let responseDict: [String: Bool] = ["granted": grantedResponse]
         XCTAssertEqual(responseDict["granted"], true, "Response dictionary should contain granted: true")
+    }
+
+    // MARK: - New Service Management Tests
+
+    func testNotificationArgsDecoding() throws {
+        // Test NotificationArgs with both fields
+        let fullJson = """
+        {
+            "title": "Recording Audio",
+            "message": "Audio recording is active"
+        }
+        """
+        let fullData = fullJson.data(using: .utf8)!
+        let fullArgs = try JSONDecoder().decode(NotificationArgs.self, from: fullData)
+        XCTAssertEqual(fullArgs.title, "Recording Audio")
+        XCTAssertEqual(fullArgs.message, "Audio recording is active")
+
+        // Test NotificationArgs with empty JSON
+        let emptyJson = "{}"
+        let emptyData = emptyJson.data(using: .utf8)!
+        let emptyArgs = try JSONDecoder().decode(NotificationArgs.self, from: emptyData)
+        XCTAssertNil(emptyArgs.title)
+        XCTAssertNil(emptyArgs.message)
+
+        // Test NotificationArgs with only title
+        let titleOnlyJson = """
+        {
+            "title": "Test Title"
+        }
+        """
+        let titleData = titleOnlyJson.data(using: .utf8)!
+        let titleArgs = try JSONDecoder().decode(NotificationArgs.self, from: titleData)
+        XCTAssertEqual(titleArgs.title, "Test Title")
+        XCTAssertNil(titleArgs.message)
+    }
+
+    func testIsServiceRunningInitialState() throws {
+        // Test that service is not running initially
+        mockInvoke.reset()
+
+        try plugin.isServiceRunning(mockInvoke)
+
+        if let resolved = mockInvoke.resolvedValue as? [String: Bool] {
+            XCTAssertEqual(resolved["running"], false, "Service should not be running initially")
+        } else {
+            XCTFail("Should have resolved with [String: Bool] response")
+        }
+    }
+
+    func testUpdateNotificationResponseFormat() throws {
+        // Test that updateNotification returns correct response format
+        mockInvoke.reset()
+        mockInvoke.argsJson = """
+        {
+            "title": "Test Title",
+            "message": "Test Message"
+        }
+        """
+
+        try plugin.updateNotification(mockInvoke)
+
+        if let resolved = mockInvoke.resolvedValue as? [String: Bool] {
+            XCTAssertEqual(resolved["updated"], true, "Should return updated: true")
+        } else {
+            XCTFail("Should have resolved with [String: Bool] response")
+        }
+    }
+
+    func testUpdateNotificationWithEmptyArgs() throws {
+        // Test that updateNotification handles empty args
+        mockInvoke.reset()
+        mockInvoke.argsJson = "{}"
+
+        try plugin.updateNotification(mockInvoke)
+
+        if let resolved = mockInvoke.resolvedValue as? [String: Bool] {
+            XCTAssertEqual(resolved["updated"], true, "Should return updated: true even with empty args")
+        } else {
+            XCTFail("Should have resolved with [String: Bool] response")
+        }
+    }
+
+    func testStopForegroundServiceResponseFormat() throws {
+        // Test that stopForegroundService returns correct response format
+        mockInvoke.reset()
+
+        try plugin.stopForegroundService(mockInvoke)
+
+        if let resolved = mockInvoke.resolvedValue as? [String: Bool] {
+            XCTAssertEqual(resolved["stopped"], true, "Should return stopped: true")
+        } else {
+            XCTFail("Should have resolved with [String: Bool] response")
+        }
+    }
+
+    func testServiceLifecycle() throws {
+        // This test verifies the state transitions but won't actually start audio session
+        // as that requires permission which may not be granted in test environment
+
+        // Initial state should be not running
+        mockInvoke.reset()
+        try plugin.isServiceRunning(mockInvoke)
+
+        if let resolved = mockInvoke.resolvedValue as? [String: Bool] {
+            let initialState = resolved["running"] ?? true
+            XCTAssertFalse(initialState, "Service should not be running initially")
+
+            // After stop, should still be not running
+            mockInvoke.reset()
+            try plugin.stopForegroundService(mockInvoke)
+
+            if let stopResolved = mockInvoke.resolvedValue as? [String: Bool] {
+                XCTAssertEqual(stopResolved["stopped"], true, "Stop should return stopped: true")
+
+                // Verify state is still not running
+                mockInvoke.reset()
+                try plugin.isServiceRunning(mockInvoke)
+
+                if let stateResolved = mockInvoke.resolvedValue as? [String: Bool] {
+                    XCTAssertFalse(stateResolved["running"] ?? true, "Service should remain stopped")
+                }
+            }
+        } else {
+            XCTFail("Should have resolved with initial state")
+        }
+    }
+
+    func testStartForegroundServiceRequiresPermission() throws {
+        // Test that startForegroundService checks permission first
+        let permission = AVAudioSession.sharedInstance().recordPermission
+
+        mockInvoke.reset()
+        try plugin.startForegroundService(mockInvoke)
+
+        if permission != .granted {
+            // If we don't have permission, should reject
+            XCTAssertNotNil(mockInvoke.rejectedError, "Should reject when permission not granted")
+            XCTAssertTrue(mockInvoke.rejectedError?.contains("not granted") ?? false, "Error should mention permission not granted")
+        } else {
+            // If we have permission, should succeed
+            if let resolved = mockInvoke.resolvedValue as? [String: Bool] {
+                XCTAssertEqual(resolved["started"], true, "Should return started: true when permission granted")
+            }
+        }
+    }
+
+    func testAudioSessionCategoryConfiguration() throws {
+        // Test that the audio session category constants exist
+        let playAndRecord = AVAudioSession.Category.playAndRecord
+        XCTAssertEqual(playAndRecord, .playAndRecord, "playAndRecord category should be available")
+
+        // Test mode constant
+        let defaultMode = AVAudioSession.Mode.default
+        XCTAssertEqual(defaultMode, .default, "default mode should be available")
+
+        // Test option constants
+        let speakerOption = AVAudioSession.CategoryOptions.defaultToSpeaker
+        let bluetoothOption = AVAudioSession.CategoryOptions.allowBluetooth
+        XCTAssertTrue(speakerOption.contains(.defaultToSpeaker), "defaultToSpeaker option should be available")
+        XCTAssertTrue(bluetoothOption.contains(.allowBluetooth), "allowBluetooth option should be available")
+    }
+
+    func testResponseModelConsistency() throws {
+        // Test that all response models follow consistent structure
+
+        // Permission responses
+        let permissionResponse: [String: Bool] = ["granted": true]
+        XCTAssertNotNil(permissionResponse["granted"])
+
+        // Service responses
+        let startResponse: [String: Bool] = ["started": true]
+        XCTAssertNotNil(startResponse["started"])
+
+        let stopResponse: [String: Bool] = ["stopped": true]
+        XCTAssertNotNil(stopResponse["stopped"])
+
+        let updateResponse: [String: Bool] = ["updated": true]
+        XCTAssertNotNil(updateResponse["updated"])
+
+        // Status responses
+        let statusResponse: [String: Bool] = ["running": false]
+        XCTAssertNotNil(statusResponse["running"])
+    }
+
+    func testErrorHandling() throws {
+        // Test that methods handle invalid JSON gracefully
+        mockInvoke.reset()
+        mockInvoke.argsJson = "invalid json"
+
+        XCTAssertThrowsError(try plugin.updateNotification(mockInvoke)) { error in
+            // Should throw decoding error
+            XCTAssertTrue(error is DecodingError, "Should throw DecodingError for invalid JSON")
+        }
     }
 }

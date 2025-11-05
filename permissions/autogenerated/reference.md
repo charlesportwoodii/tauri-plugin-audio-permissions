@@ -45,6 +45,32 @@ Denies the check_permission command without any pre-configured scope.
 <tr>
 <td>
 
+`audio-permissions:allow-is-service-running`
+
+</td>
+<td>
+
+Enables the is_service_running command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:deny-is-service-running`
+
+</td>
+<td>
+
+Denies the is_service_running command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `audio-permissions:allow-request-permission`
 
 </td>
@@ -64,6 +90,84 @@ Enables the request_permission command without any pre-configured scope.
 <td>
 
 Denies the request_permission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:allow-start-foreground-service`
+
+</td>
+<td>
+
+Enables the start_foreground_service command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:deny-start-foreground-service`
+
+</td>
+<td>
+
+Denies the start_foreground_service command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:allow-stop-foreground-service`
+
+</td>
+<td>
+
+Enables the stop_foreground_service command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:deny-stop-foreground-service`
+
+</td>
+<td>
+
+Denies the stop_foreground_service command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:allow-update-notification`
+
+</td>
+<td>
+
+Enables the update_notification command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:deny-update-notification`
+
+</td>
+<td>
+
+Denies the update_notification command without any pre-configured scope.
 
 </td>
 </tr>

@@ -38,4 +38,32 @@ impl<R: Runtime> AudioPermissions<R> {
       .run_mobile_plugin("checkPermission", payload)
       .map_err(Into::into)
   }
+
+  pub fn start_foreground_service(&self) -> crate::Result<ServiceResponse> {
+    self
+      .0
+      .run_mobile_plugin("startForegroundService", ())
+      .map_err(Into::into)
+  }
+
+  pub fn stop_foreground_service(&self) -> crate::Result<ServiceResponse> {
+    self
+      .0
+      .run_mobile_plugin("stopForegroundService", ())
+      .map_err(Into::into)
+  }
+
+  pub fn update_notification(&self, payload: NotificationUpdate) -> crate::Result<ServiceResponse> {
+    self
+      .0
+      .run_mobile_plugin("updateNotification", payload)
+      .map_err(Into::into)
+  }
+
+  pub fn is_service_running(&self) -> crate::Result<ServiceStatusResponse> {
+    self
+      .0
+      .run_mobile_plugin("isServiceRunning", ())
+      .map_err(Into::into)
+  }
 }

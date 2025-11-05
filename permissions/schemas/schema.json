@@ -307,6 +307,18 @@
           "markdownDescription": "Denies the check_permission command without any pre-configured scope."
         },
         {
+          "description": "Enables the is_service_running command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-is-service-running",
+          "markdownDescription": "Enables the is_service_running command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the is_service_running command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-is-service-running",
+          "markdownDescription": "Denies the is_service_running command without any pre-configured scope."
+        },
+        {
           "description": "Enables the request_permission command without any pre-configured scope.",
           "type": "string",
           "const": "allow-request-permission",
@@ -317,6 +329,42 @@
           "type": "string",
           "const": "deny-request-permission",
           "markdownDescription": "Denies the request_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the start_foreground_service command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-foreground-service",
+          "markdownDescription": "Enables the start_foreground_service command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_foreground_service command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-foreground-service",
+          "markdownDescription": "Denies the start_foreground_service command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the stop_foreground_service command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-stop-foreground-service",
+          "markdownDescription": "Enables the stop_foreground_service command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the stop_foreground_service command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-stop-foreground-service",
+          "markdownDescription": "Denies the stop_foreground_service command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-notification",
+          "markdownDescription": "Enables the update_notification command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-notification",
+          "markdownDescription": "Denies the update_notification command without any pre-configured scope."
         },
         {
           "description": "Default permissions for the audio permissions plugin\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-check-permission`",

@@ -1,12 +1,16 @@
 # Tauri Plugin audio_permissions
 
-A Tauri v2 plugin that provides a lightweight shim layer for managing audio recording permissions on mobile platforms.
+A Tauri v2 plugin that provides a comprehensive API for managing audio recording permissions and background audio sessions on mobile platforms. Built for use with Rodio/CPAL audio libraries.
 
 ## Features
 
-- **Android**: Implements `ActivityCompat.requestPermissions` for `RECORD_AUDIO` permission
-- **iOS**: Ready for iOS audio permission implementation
-- **Desktop**: Returns granted by default (desktop platforms typically don't require explicit audio permissions)
+- ✅ **Complete Permission Management** - Request and check microphone permissions
+- ✅ **Background Recording Support** - Keep audio recording active when app is in background
+- ✅ **Foreground Service Management** - Android foreground service with notifications
+- ✅ **Audio Session Control** - iOS AVAudioSession management
+- ✅ **Platform Parity** - Identical API across Android and iOS
+- ✅ **Auto Configuration** - Automatic manifest/Info.plist injection
+- ✅ **Desktop Support** - Returns granted by default (desktop platforms don't require explicit audio permissions)
 
 ## Installation
 
@@ -17,84 +21,213 @@ Add the plugin to your Tauri project's dependencies:
 tauri-plugin-audio-permissions = { path = "path/to/this/plugin" }
 ```
 
-## Permissions
-
-This plugin follows Tauri's permission system. See [PERMISSIONS.md](./PERMISSIONS.md) for detailed security configuration.
-
-**Basic Configuration:**
-```json
-{
-  "permissions": ["audio-permissions:default"]
-}
-```
-
-## Usage
-
-### Rust (Backend)
+Initialize the plugin in your Tauri app:
 
 ```rust
-use tauri_plugin_audio_permissions::{AudioPermissionsExt, PermissionRequest};
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_audio_permissions::init())
+        .setup(|app| {
+            // Your setup code
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+```
 
-// In your Tauri commands
+## Permissions Configuration
+
+Add permissions to your `capabilities/*.json` file:
+
+```json
+{
+  "permissions": [
+    "audio-permissions:default"
+  ]
+}
+```
+
+**Available Permission Sets:**
+- `audio-permissions:default` - Basic permission checking and requesting
+- `audio-permissions:full-access` - All features including background service management
+- `audio-permissions:read-only` - Permission checking only (no requesting)
+
+## Implementation Guide
+
+### Basic Pattern for Background Recording
+
+Here's the recommended pattern for using this plugin with Rodio/CPAL:
+
+#### Rust Backend
+
+```rust
+use tauri_plugin_audio_permissions::{AudioPermissionsExt, PermissionRequest, NotificationUpdate};
+
 #[tauri::command]
-async fn request_audio_permission(app: tauri::AppHandle) -> Result<bool, String> {
-    let response = app.audio_permissions()
-        .request_permission(PermissionRequest {})
+async fn start_recording<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<bool, String> {
+    // Check permission
+    let permission = app.audio_permissions()
+        .check_permission(PermissionRequest {})
         .map_err(|e| e.to_string())?;
-    Ok(response.granted)
+
+    if !permission.granted {
+        let response = app.audio_permissions()
+            .request_permission(PermissionRequest {})
+            .map_err(|e| e.to_string())?;
+
+        if !response.granted {
+            return Ok(false);
+        }
+    }
+
+    // Start foreground service for background recording
+    let service = app.audio_permissions()
+        .start_foreground_service()
+        .map_err(|e| e.to_string())?;
+
+    if service.started.unwrap_or(false) {
+        // Initialize your audio recording here (Rodio/CPAL)
+        // let device = cpal::default_host().default_input_device()...
+
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+async fn stop_recording<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+    // Stop your audio recording first
+    // ...
+
+    // Stop foreground service
+    app.audio_permissions()
+        .stop_foreground_service()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn update_recording_notification<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    elapsed: String
+) -> Result<(), String> {
+    app.audio_permissions()
+        .update_notification(NotificationUpdate {
+            title: Some("Recording Audio".to_string()),
+            message: Some(format!("Recording time: {}", elapsed)),
+        })
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 ```
 
-### JavaScript/TypeScript (Frontend)
+#### TypeScript/JavaScript Frontend
 
 ```typescript
-import { requestPermission, checkPermission } from 'tauri-plugin-audio-permissions-api';
+import {
+  requestPermission,
+  checkPermission,
+  startForegroundService,
+  stopForegroundService,
+  updateNotification,
+  isServiceRunning
+} from 'tauri-plugin-audio-permissions-api';
+import { info, error, warn, debug } from '@tauri-apps/plugin-log';
 
-// Request audio permission
-const response = await requestPermission();
-if (response.granted) {
-    console.log('Audio permission granted');
-} else {
-    console.log('Audio permission denied');
+async function startRecording() {
+  try {
+    const permissionStatus = await checkPermission();
+
+    if (!permissionStatus.granted) {
+      const permissionResult = await requestPermission();
+
+      if (!permissionResult.granted) {
+        error('Permission denied');
+        return false;
+      }
+    }
+
+    const serviceResult = await startForegroundService();
+
+    if (serviceResult.started) {
+      info('Background audio session started');
+
+      // Start your audio recording code here
+
+      return true;
+    } else {
+      error('Failed to start foreground service');
+      return false;
+    }
+  } catch (error) {
+    error('Error starting recording:', error);
+    return false;
+  }
 }
 
-// Check current permission status
-const status = await checkPermission();
-console.log('Permission status:', status.granted);
+async function stopRecording() {
+  try {
+    // Stop your recording code
+
+    const result = await stopForegroundService();
+
+    if (result.stopped) {
+      info('Background audio session stopped');
+    }
+  } catch (error) {
+    error('Error stopping recording:', error);
+  }
+}
+
+// Update notification during recording (Android only)
+async function updateRecordingNotification(elapsed: string) {
+  try {
+    await updateNotification({
+      title: 'Recording Audio',
+      message: `Recording time: ${elapsed}`
+    });
+  } catch (error) {
+    error('Error updating notification:', error);
+  }
+}
+
+// Check if recording is active
+async function checkRecordingStatus() {
+  try {
+    const status = await isServiceRunning();
+    return status.running;
+  } catch (error) {
+    error('Error checking status:', error);
+    return false;
+  }
+}
 ```
 
-## API
 
-### Commands
+## Testing
 
-- `request_permission()` - Requests audio recording permission from the user
-- `check_permission()` - Checks the current audio recording permission status
+### iOS Tests
+```bash
+cd ios
+swift test
+```
 
-### Response Format
+### Android Tests
+```bash
+# Unit tests
+./gradlew test
 
-Both commands return a `PermissionResponse`:
-
-```typescript
-interface PermissionResponse {
-  granted: boolean;
-}
+# Instrumented tests (requires device/emulator)
+./gradlew connectedAndroidTest
 ```
 
 ## Example Application
 
-A complete example app is available in `examples/tauri-app/` demonstrating:
-- Automatic permission checking and requesting on app launch
-- Real-time permission status display
-- Manual permission controls for testing
-- Technical logging for debugging
-- Cross-platform behavior
+A complete example app demonstrating all features is available in `examples/tauri-app/`:
 
 ```bash
 cd examples/tauri-app
@@ -102,18 +235,34 @@ npm install
 npm run tauri dev
 ```
 
-See [examples/tauri-app/README.md](./examples/tauri-app/README.md) for detailed usage instructions.
+The example demonstrates:
+- Permission requesting flow
+- Background recording with foreground service
+- Notification updates
+- Service status checking
+- Cross-platform behavior
 
-## Platform Behavior
+## Troubleshooting
 
-- **Android**: Uses `ActivityCompat.requestPermissions` with `RECORD_AUDIO` permission
-- **iOS**: Ready for implementation (currently stub)
-- **Desktop**: Always returns `granted: true` as desktop platforms typically don't require explicit audio permissions
+### Android: Service not starting
+- Ensure `RECORD_AUDIO` permission is granted before calling `start_foreground_service()`
+- Check logcat for errors: `adb logcat | grep AudioPermission`
 
-## Android Manifest
+### iOS: Background audio stops
+- Ensure you call `start_foreground_service()` before starting audio recording
+- Verify `UIBackgroundModes` includes `"audio"` in Info.plist
 
-The plugin automatically includes the required Android permission in your app's manifest:
+### Desktop: Service commands not working
+- Service management commands are no-ops on desktop - this is expected behavior
+- Only use service commands conditionally on mobile platforms
 
-```xml
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
-```
+## License
+
+MIT or Apache-2.0
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+- All tests pass (`swift test` for iOS, `./gradlew test` for Android)
+- Code follows existing patterns
+- Platform parity is maintained
