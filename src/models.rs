@@ -1,9 +1,23 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PermissionType {
+  Audio,
+  Notification,
+}
+
+impl Default for PermissionType {
+  fn default() -> Self {
+    PermissionType::Audio
+  }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PermissionRequest {
-  // No fields needed for permission requests
+  #[serde(default)]
+  pub permission_type: PermissionType,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]

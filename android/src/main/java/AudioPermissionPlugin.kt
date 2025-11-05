@@ -5,9 +5,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -17,7 +20,7 @@ import app.tauri.plugin.Invoke
 
 @InvokeArg
 class PermissionArgs {
-  // No arguments needed for permission request
+  var permissionType: String? = "audio" // Default to audio
 }
 
 @InvokeArg
@@ -54,12 +57,52 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
     @Command
     fun requestPermission(invoke: Invoke) {
         try {
-            val hasPermission = implementation.requestPermission()
-            val ret = JSObject()
-            ret.put("granted", hasPermission)
-            invoke.resolve(ret)
+            val args = invoke.parseArgs(PermissionArgs::class.java)
+            val permissionType = args.permissionType ?: "audio"
+
+            when (permissionType.lowercase()) {
+                "notification" -> {
+                    // Handle notification permission request (Android 13+)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val hasPermission = ContextCompat.checkSelfPermission(
+                            activity,
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                        if (hasPermission) {
+                            val ret = JSObject()
+                            ret.put("granted", true)
+                            invoke.resolve(ret)
+                        } else {
+                            // Request the permission
+                            ActivityCompat.requestPermissions(
+                                activity,
+                                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                                1002
+                            )
+                            // Return false immediately - app would need to check again after user responds
+                            val ret = JSObject()
+                            ret.put("granted", false)
+                            invoke.resolve(ret)
+                            Log.d(TAG, "Requested POST_NOTIFICATIONS permission")
+                        }
+                    } else {
+                        // Not needed on Android < 13
+                        val ret = JSObject()
+                        ret.put("granted", true)
+                        invoke.resolve(ret)
+                    }
+                }
+                else -> {
+                    // Default: audio permission
+                    val hasPermission = implementation.requestPermission()
+                    val ret = JSObject()
+                    ret.put("granted", hasPermission)
+                    invoke.resolve(ret)
+                }
+            }
         } catch (e: Exception) {
-            invoke.reject("Failed to request audio permission: ${e.message}")
+            invoke.reject("Failed to request permission: ${e.message}")
         }
     }
 
@@ -81,6 +124,19 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
             if (!implementation.checkPermission()) {
                 invoke.reject("Audio permission not granted")
                 return
+            }
+
+            // Check and request POST_NOTIFICATIONS permission on Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(
+                        activity,
+                        android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    Log.w(TAG, "POST_NOTIFICATIONS permission not granted - notification may not be visible")
+                    // Note: We continue anyway because the service can still run without notification
+                    // The notification permission should ideally be requested by the app beforehand
+                }
             }
 
             val intent = Intent(activity, AudioRecordingService::class.java).apply {

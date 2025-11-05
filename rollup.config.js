@@ -14,13 +14,17 @@ export default {
     },
     {
       file: pkg.exports.require,
-      format: 'cjs'
+      format: 'cjs',
+      exports: 'named'
     }
   ],
   plugins: [
     typescript({
       declaration: true,
-      declarationDir: `./${pkg.exports.import.split('/')[0]}`
+      declarationDir: `./${pkg.exports.import.split('/')[0]}`,
+      compilerOptions: {
+        preserveConstEnums: true
+      }
     })
   ],
   external: [

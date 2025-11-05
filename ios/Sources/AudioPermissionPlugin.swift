@@ -5,7 +5,7 @@ import WebKit
 import AVFoundation
 
 class PermissionArgs: Decodable {
-  // No arguments needed for permission requests
+  var permissionType: String? = "audio" // Default to audio
 }
 
 class NotificationArgs: Decodable {
@@ -19,10 +19,20 @@ class AudioPermissionPlugin: Plugin {
 
   @objc public func requestPermission(_ invoke: Invoke) throws {
     let args = try invoke.parseArgs(PermissionArgs.self)
+    let permissionType = args.permissionType ?? "audio"
 
-    audioSession.requestRecordPermission { granted in
-      DispatchQueue.main.async {
-        invoke.resolve(["granted": granted])
+    switch permissionType.lowercased() {
+    case "notification":
+      // iOS doesn't require POST_NOTIFICATIONS permission like Android 13+
+      // Notifications are handled automatically by the system for audio sessions
+      // Return granted for API consistency
+      invoke.resolve(["granted": true])
+    default:
+      // Audio permission
+      audioSession.requestRecordPermission { granted in
+        DispatchQueue.main.async {
+          invoke.resolve(["granted": granted])
+        }
       }
     }
   }

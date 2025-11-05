@@ -6,7 +6,8 @@
     startForegroundService,
     stopForegroundService,
     updateNotification,
-    isServiceRunning
+    isServiceRunning,
+    PermissionType
   } from 'tauri-plugin-audio-permissions'
   import { info, error } from '@tauri-apps/plugin-log'
 
@@ -118,6 +119,19 @@
 					return;
 				}
 				permissionStatus = 'granted';
+			}
+
+			// Request notification permission (Android 13+)
+			addLog('Requesting notification permission...', 'info');
+			try {
+				const notifResult = await requestPermission({ permissionType: PermissionType.Notification });
+				if (notifResult.granted) {
+					addLog('Notification permission granted', 'success');
+				} else {
+					addLog('Notification permission not granted - notification may not be visible', 'info');
+				}
+			} catch (err) {
+				addLog(`Notification permission check failed: ${err}`, 'info');
 			}
 
 			// Start foreground service

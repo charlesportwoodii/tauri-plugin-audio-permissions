@@ -22,14 +22,30 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct AudioPermissions<R: Runtime>(AppHandle<R>);
 
 impl<R: Runtime> AudioPermissions<R> {
-  pub fn request_permission(&self, _payload: PermissionRequest) -> crate::Result<PermissionResponse> {
-    let granted = request_microphone_permission()?;
-    Ok(PermissionResponse { granted })
+  pub fn request_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
+    match payload.permission_type {
+      crate::models::PermissionType::Audio => {
+        let granted = request_microphone_permission()?;
+        Ok(PermissionResponse { granted })
+      }
+      crate::models::PermissionType::Notification => {
+        // Desktop doesn't need notification permissions
+        Ok(PermissionResponse { granted: true })
+      }
+    }
   }
 
-  pub fn check_permission(&self, _payload: PermissionRequest) -> crate::Result<PermissionResponse> {
-    let granted = check_microphone_permission()?;
-    Ok(PermissionResponse { granted })
+  pub fn check_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
+    match payload.permission_type {
+      crate::models::PermissionType::Audio => {
+        let granted = check_microphone_permission()?;
+        Ok(PermissionResponse { granted })
+      }
+      crate::models::PermissionType::Notification => {
+        // Desktop doesn't need notification permissions
+        Ok(PermissionResponse { granted: true })
+      }
+    }
   }
 
   // Desktop doesn't need foreground services - these are no-ops

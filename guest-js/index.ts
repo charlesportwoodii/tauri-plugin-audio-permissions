@@ -1,5 +1,16 @@
 import { invoke } from '@tauri-apps/api/core'
 
+export const PermissionType = {
+  Audio: 'audio',
+  Notification: 'notification',
+} as const;
+
+export type PermissionType = typeof PermissionType[keyof typeof PermissionType];
+
+export interface PermissionRequest {
+  permissionType?: PermissionType;
+}
+
 export interface PermissionResponse {
   granted: boolean;
 }
@@ -19,15 +30,15 @@ export interface NotificationUpdate {
   message?: string;
 }
 
-export async function requestPermission(): Promise<PermissionResponse> {
+export async function requestPermission(request?: PermissionRequest): Promise<PermissionResponse> {
   return await invoke<PermissionResponse>('plugin:audio-permissions|request_permission', {
-    payload: {},
+    payload: request || { permissionType: PermissionType.Audio },
   });
 }
 
-export async function checkPermission(): Promise<PermissionResponse> {
+export async function checkPermission(request?: PermissionRequest): Promise<PermissionResponse> {
   return await invoke<PermissionResponse>('plugin:audio-permissions|check_permission', {
-    payload: {},
+    payload: request || { permissionType: PermissionType.Audio },
   });
 }
 

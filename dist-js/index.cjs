@@ -2,14 +2,18 @@
 
 var core = require('@tauri-apps/api/core');
 
-async function requestPermission() {
+const PermissionType = {
+    Audio: 'audio',
+    Notification: 'notification',
+};
+async function requestPermission(request) {
     return await core.invoke('plugin:audio-permissions|request_permission', {
-        payload: {},
+        payload: request || { permissionType: PermissionType.Audio },
     });
 }
-async function checkPermission() {
+async function checkPermission(request) {
     return await core.invoke('plugin:audio-permissions|check_permission', {
-        payload: {},
+        payload: request || { permissionType: PermissionType.Audio },
     });
 }
 async function startForegroundService() {
@@ -27,6 +31,7 @@ async function isServiceRunning() {
     return await core.invoke('plugin:audio-permissions|is_service_running');
 }
 
+exports.PermissionType = PermissionType;
 exports.checkPermission = checkPermission;
 exports.isServiceRunning = isServiceRunning;
 exports.requestPermission = requestPermission;

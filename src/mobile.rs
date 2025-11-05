@@ -26,13 +26,25 @@ pub struct AudioPermissions<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> AudioPermissions<R> {
   pub fn request_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
-    self
-      .0
-      .run_mobile_plugin("requestPermission", payload)
-      .map_err(Into::into)
+    match payload.permission_type {
+      crate::models::PermissionType::Audio => {
+        self
+          .0
+          .run_mobile_plugin("requestPermission", payload)
+          .map_err(Into::into)
+      }
+      crate::models::PermissionType::Notification => {
+        self
+          .0
+          .run_mobile_plugin("requestNotificationPermission", ())
+          .map_err(Into::into)
+      }
+    }
   }
 
   pub fn check_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
+    // Check permission only applies to audio for now
+    // Notification permission checking is done during request
     self
       .0
       .run_mobile_plugin("checkPermission", payload)
