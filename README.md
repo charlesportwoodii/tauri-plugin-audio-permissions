@@ -207,41 +207,6 @@ async function checkRecordingStatus() {
 }
 ```
 
-
-## Testing
-
-### iOS Tests
-```bash
-cd ios
-swift test
-```
-
-### Android Tests
-```bash
-# Unit tests
-./gradlew test
-
-# Instrumented tests (requires device/emulator)
-./gradlew connectedAndroidTest
-```
-
-## Example Application
-
-A complete example app demonstrating all features is available in `examples/tauri-app/`:
-
-```bash
-cd examples/tauri-app
-npm install
-npm run tauri dev
-```
-
-The example demonstrates:
-- Permission requesting flow
-- Background recording with foreground service
-- Notification updates
-- Service status checking
-- Cross-platform behavior
-
 ## Troubleshooting
 
 ### Android: Service not starting
@@ -255,14 +220,3 @@ The example demonstrates:
 ### Desktop: Service commands not working
 - Service management commands are no-ops on desktop - this is expected behavior
 - Only use service commands conditionally on mobile platforms
-
-## License
-
-MIT or Apache-2.0
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-- All tests pass (`swift test` for iOS, `./gradlew test` for Android)
-- Code follows existing patterns
-- Platform parity is maintained
