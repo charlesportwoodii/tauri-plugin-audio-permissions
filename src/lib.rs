@@ -37,7 +37,14 @@ impl<R: Runtime, T: Manager<R>> crate::AudioPermissionsExt<R> for T {
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
   Builder::new("audio-permissions")
-    .invoke_handler(tauri::generate_handler![commands::request_permission, commands::check_permission])
+    .invoke_handler(tauri::generate_handler![
+      commands::request_permission,
+      commands::check_permission,
+      commands::start_foreground_service,
+      commands::stop_foreground_service,
+      commands::update_notification,
+      commands::is_service_running
+    ])
     .setup(|app, api| {
       #[cfg(mobile)]
       let audio_permissions = mobile::init(app, api)?;

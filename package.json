@@ -24,12 +24,12 @@
     "example:build": "cd examples/tauri-app && npm install && yarn tauri build"
   },
   "dependencies": {
-    "@tauri-apps/api": ">=2.0.0-beta.6"
+    "@tauri-apps/api": "^2"
   },
   "devDependencies": {
-    "@rollup/plugin-typescript": "^11.1.6",
-    "rollup": "^4.9.6",
-    "typescript": "^5.3.3",
-    "tslib": "^2.6.2"
+    "@rollup/plugin-typescript": "^11",
+    "rollup": "^4",
+    "tslib": "^2",
+    "typescript": "^5"
   }
 }
