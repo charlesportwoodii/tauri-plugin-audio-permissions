@@ -9,7 +9,7 @@ pub(crate) async fn request_permission<R: Runtime>(
     app: AppHandle<R>,
     payload: PermissionRequest,
 ) -> Result<PermissionResponse> {
-    app.audio_permissions().request_permission(payload)
+    app.audio_permissions().request_permission(payload).await
 }
 
 #[command]

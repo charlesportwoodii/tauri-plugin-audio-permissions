@@ -9,10 +9,12 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import app.tauri.PermissionState
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
+import app.tauri.annotation.Permission
+import app.tauri.annotation.PermissionCallback
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
@@ -29,11 +31,20 @@ class ServiceArgs {
   var message: String? = null
 }
 
-@TauriPlugin
+@TauriPlugin(
+  permissions = [
+    Permission(strings = [android.Manifest.permission.RECORD_AUDIO], alias = "audio"),
+    Permission(strings = [android.Manifest.permission.POST_NOTIFICATIONS], alias = "notification")
+  ]
+)
 class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
     private val implementation = AudioPermission(activity)
     private var audioService: AudioRecordingService? = null
     private var isBound = false
+
+    // Track which permission type is being requested for the callback
+    @Volatile
+    private var currentPermissionRequest: String? = null
 
     companion object {
         private const val TAG = "AudioPermissionPlugin"
@@ -64,46 +75,57 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
                 "notification" -> {
                     // Handle notification permission request (Android 13+)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        val hasPermission = ContextCompat.checkSelfPermission(
-                            activity,
-                            android.Manifest.permission.POST_NOTIFICATIONS
-                        ) == PackageManager.PERMISSION_GRANTED
-
-                        if (hasPermission) {
-                            val ret = JSObject()
-                            ret.put("granted", true)
-                            invoke.resolve(ret)
-                        } else {
-                            // Request the permission
-                            ActivityCompat.requestPermissions(
-                                activity,
-                                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                                1002
-                            )
-                            // Return false immediately - app would need to check again after user responds
-                            val ret = JSObject()
-                            ret.put("granted", false)
-                            invoke.resolve(ret)
-                            Log.d(TAG, "Requested POST_NOTIFICATIONS permission")
-                        }
+                        // Track which permission we're requesting
+                        currentPermissionRequest = "notification"
+                        // Use Tauri's async permission system - it will call handlePermissionResult when user responds
+                        requestPermissionForAlias("notification", invoke, "handlePermissionResult")
+                        Log.d(TAG, "Requesting POST_NOTIFICATIONS permission (async via Tauri)")
                     } else {
                         // Not needed on Android < 13
-                        val ret = JSObject()
-                        ret.put("granted", true)
+                        val ret = JSObject().apply { put("granted", true) }
                         invoke.resolve(ret)
+                        Log.d(TAG, "POST_NOTIFICATIONS not required on Android < 13")
                     }
                 }
                 else -> {
-                    // Default: audio permission
-                    val hasPermission = implementation.requestPermission()
-                    val ret = JSObject()
-                    ret.put("granted", hasPermission)
-                    invoke.resolve(ret)
+                    // Track which permission we're requesting
+                    currentPermissionRequest = "audio"
+                    // Default: audio permission - Use Tauri's async permission system
+                    requestPermissionForAlias("audio", invoke, "handlePermissionResult")
+                    Log.d(TAG, "Requesting RECORD_AUDIO permission (async via Tauri)")
                 }
             }
         } catch (e: Exception) {
             invoke.reject("Failed to request permission: ${e.message}")
         }
+    }
+
+    @PermissionCallback
+    fun handlePermissionResult(invoke: Invoke) {
+        // Called by Tauri's permission system after user responds
+        // Get the permission type that was requested
+        val requestedPermission = currentPermissionRequest ?: "audio"
+
+        // Map permission alias to actual Android permission string
+        val permissionString = when (requestedPermission) {
+            "notification" -> android.Manifest.permission.POST_NOTIFICATIONS
+            else -> android.Manifest.permission.RECORD_AUDIO
+        }
+
+        // Check permission directly from Android system (not from SharedPreferences)
+        // This avoids race condition with SharedPreferences async writes
+        val granted = ContextCompat.checkSelfPermission(
+            activity,
+            permissionString
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val ret = JSObject().apply { put("granted", granted) }
+        invoke.resolve(ret)
+
+        // Clear the current request
+        currentPermissionRequest = null
+
+        Log.d(TAG, "Permission callback for '$requestedPermission' ($permissionString): granted=$granted")
     }
 
     @Command

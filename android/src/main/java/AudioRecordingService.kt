@@ -69,7 +69,12 @@ class AudioRecordingService : Service() {
     private fun stopRecording() {
         Log.d(TAG, "Stopping recording")
         isRecording = false
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
         stopSelf()
     }
 

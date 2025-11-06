@@ -28,7 +28,8 @@ class AudioPermissionPlugin: Plugin {
       // Return granted for API consistency
       invoke.resolve(["granted": true])
     default:
-      // Audio permission
+      // Audio permission - properly async using completion handler
+      // The invoke callback is only resolved when the user responds to the permission dialog
       audioSession.requestRecordPermission { granted in
         DispatchQueue.main.async {
           invoke.resolve(["granted": granted])

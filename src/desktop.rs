@@ -19,10 +19,21 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 }
 
 /// Access to the audio-permissions APIs.
+///
+/// # Async Implementation Notes
+///
+/// ## MacOS
+/// TODO: The macOS implementation currently passes a null completion handler to
+/// requestAccessForMediaType, which doesn't properly await the user's response.
+/// This should be updated to use a proper completion handler and resolve the promise
+/// when the user responds to the permission dialog, similar to the Android implementation.
+///
+/// ## Windows/Linux
+/// Desktop platforms typically don't require explicit permission requests for microphone access.
 pub struct AudioPermissions<R: Runtime>(AppHandle<R>);
 
 impl<R: Runtime> AudioPermissions<R> {
-  pub fn request_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
+  pub async fn request_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
     match payload.permission_type {
       crate::models::PermissionType::Audio => {
         let granted = request_microphone_permission()?;

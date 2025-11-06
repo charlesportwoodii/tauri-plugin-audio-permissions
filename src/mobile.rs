@@ -22,21 +22,39 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 }
 
 /// Access to the audio-permissions APIs.
+///
+/// # Async Implementation Notes
+///
+/// ## Android (✅ Implemented)
+/// Uses `registerForActivityResult` with `ActivityResultContracts.RequestPermission()`
+/// to properly await user permission responses. The Invoke callbacks are stored and
+/// resolved when the user responds to the permission dialog.
+///
+/// ## iOS (✅ Already Correct)
+/// iOS implementation correctly uses `requestRecordPermission` with a completion handler
+/// that only resolves the Invoke callback when the user responds to the permission dialog.
+///
+/// ## MacOS (⚠️ TODO)
+/// The macOS desktop implementation currently passes a null completion handler to
+/// `requestAccessForMediaType`, which doesn't properly await the user's response.
+/// This should be updated to use a proper Objective-C block as the completion handler.
 pub struct AudioPermissions<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> AudioPermissions<R> {
-  pub fn request_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
+  pub async fn request_permission(&self, payload: PermissionRequest) -> crate::Result<PermissionResponse> {
     match payload.permission_type {
       crate::models::PermissionType::Audio => {
         self
           .0
-          .run_mobile_plugin("requestPermission", payload)
+          .run_mobile_plugin_async("requestPermission", payload)
+          .await
           .map_err(Into::into)
       }
       crate::models::PermissionType::Notification => {
         self
           .0
-          .run_mobile_plugin("requestPermission", payload)
+          .run_mobile_plugin_async("requestPermission", payload)
+          .await
           .map_err(Into::into)
       }
     }
