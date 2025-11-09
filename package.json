@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-audio-permissions",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "Charles R. Portwood II",
   "description": "",
   "license": "BSD-3-Clause",
@@ -28,7 +28,7 @@
     "@tauri-apps/api": "^2"
   },
   "devDependencies": {
-    "@rollup/plugin-typescript": "^11",
+    "@rollup/plugin-typescript": "^12",
     "rollup": "^4",
     "tslib": "^2",
     "typescript": "^5"

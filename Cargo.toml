@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-audio-permissions"
-version = "0.1.0"
+version = "0.1.2"
 authors = [ "charlesportwoodii@erianna.com" ]
 description = ""
 license = "BSD-3-Clause"
