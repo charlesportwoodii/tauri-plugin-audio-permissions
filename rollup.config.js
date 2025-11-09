@@ -21,7 +21,7 @@ export default {
   plugins: [
     typescript({
       declaration: true,
-      declarationDir: `./${pkg.exports.import.split('/')[0]}`,
+      declarationDir: './dist-js',
       compilerOptions: {
         preserveConstEnums: true
       }
