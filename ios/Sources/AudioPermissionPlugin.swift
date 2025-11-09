@@ -14,6 +14,8 @@ class NotificationArgs: Decodable {
 }
 
 class AudioPermissionPlugin: Plugin {
+  private let audioPermission = AudioPermission()
+  private let notificationPermission = NotificationPermission()
   private let audioSession: AVAudioSession = AVAudioSession.sharedInstance()
   private var isSessionActive: Bool = false
 
@@ -23,33 +25,39 @@ class AudioPermissionPlugin: Plugin {
 
     switch permissionType.lowercased() {
     case "notification":
-      // iOS doesn't require POST_NOTIFICATIONS permission like Android 13+
-      // Notifications are handled automatically by the system for audio sessions
-      // Return granted for API consistency
-      invoke.resolve(["granted": true])
+      // Request notification permission properly using UNUserNotificationCenter
+      notificationPermission.requestPermission { granted in
+        invoke.resolve(["granted": granted])
+      }
     default:
       // Audio permission - properly async using completion handler
       // The invoke callback is only resolved when the user responds to the permission dialog
-      audioSession.requestRecordPermission { granted in
-        DispatchQueue.main.async {
-          invoke.resolve(["granted": granted])
-        }
+      audioPermission.requestPermission { granted in
+        invoke.resolve(["granted": granted])
       }
     }
   }
 
   @objc public func checkPermission(_ invoke: Invoke) throws {
     let args = try invoke.parseArgs(PermissionArgs.self)
+    let permissionType = args.permissionType ?? "audio"
 
-    let permission = audioSession.recordPermission
-    let granted = permission == .granted
-
-    invoke.resolve(["granted": granted])
+    switch permissionType.lowercased() {
+    case "notification":
+      // Check notification permission asynchronously
+      notificationPermission.checkPermission { granted in
+        invoke.resolve(["granted": granted])
+      }
+    default:
+      // Check audio permission synchronously
+      let granted = audioPermission.checkPermission()
+      invoke.resolve(["granted": granted])
+    }
   }
 
   @objc public func startForegroundService(_ invoke: Invoke) throws {
-    // Check if we have permission first
-    guard audioSession.recordPermission == .granted else {
+    // Check if we have audio permission first using our AudioPermission class
+    guard audioPermission.checkPermission() else {
       invoke.reject("Audio permission not granted")
       return
     }

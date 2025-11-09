@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "author": "Charles R. Portwood II",
   "description": "",
+  "license": "BSD-3-Clause",
   "type": "module",
   "types": "./dist-js/index.d.ts",
   "main": "./dist-js/index.cjs",

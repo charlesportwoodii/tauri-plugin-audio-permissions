@@ -38,7 +38,8 @@ class ServiceArgs {
   ]
 )
 class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
-    private val implementation = AudioPermission(activity)
+    private val audioPermission = AudioPermission(activity)
+    private val notificationPermission = NotificationPermission(activity)
     private var audioService: AudioRecordingService? = null
     private var isBound = false
 
@@ -131,34 +132,37 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
     @Command
     fun checkPermission(invoke: Invoke) {
         try {
-            val hasPermission = implementation.checkPermission()
+            val args = invoke.parseArgs(PermissionArgs::class.java)
+            val permissionType = args.permissionType ?: "audio"
+
+            val hasPermission = when (permissionType.lowercase()) {
+                "notification" -> notificationPermission.checkPermission()
+                else -> audioPermission.checkPermission()
+            }
+
             val ret = JSObject()
             ret.put("granted", hasPermission)
             invoke.resolve(ret)
+            Log.d(TAG, "Checked $permissionType permission: $hasPermission")
         } catch (e: Exception) {
-            invoke.reject("Failed to check audio permission: ${e.message}")
+            invoke.reject("Failed to check permission: ${e.message}")
         }
     }
 
     @Command
     fun startForegroundService(invoke: Invoke) {
         try {
-            if (!implementation.checkPermission()) {
+            // Check audio permission using our AudioPermission class
+            if (!audioPermission.checkPermission()) {
                 invoke.reject("Audio permission not granted")
                 return
             }
 
-            // Check and request POST_NOTIFICATIONS permission on Android 13+
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(
-                        activity,
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    Log.w(TAG, "POST_NOTIFICATIONS permission not granted - notification may not be visible")
-                    // Note: We continue anyway because the service can still run without notification
-                    // The notification permission should ideally be requested by the app beforehand
-                }
+            // Check notification permission using our NotificationPermission class
+            if (!notificationPermission.checkPermission()) {
+                Log.w(TAG, "POST_NOTIFICATIONS permission not granted - notification may not be visible")
+                invoke.reject("Notification permission not granted")
+                return
             }
 
             val intent = Intent(activity, AudioRecordingService::class.java).apply {
