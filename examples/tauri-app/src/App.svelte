@@ -12,9 +12,9 @@
   import { info, error } from '@tauri-apps/plugin-log'
 
 	let permissionStatus = $state('unknown');
+	let notificationPermissionStatus = $state('unknown');
 	let isLoading = $state(false);
 	let logs = $state([]);
-	let autoCheckComplete = $state(false);
 	let isRecording = $state(false);
 	let elapsedSeconds = $state(0);
 	let timerInterval = $state(null);
@@ -33,6 +33,20 @@
 		'denied': 'Denied ❌',
 		'error': 'Error ⚠️'
 	}[permissionStatus] || 'Unknown');
+
+	let notificationStatusClass = $derived({
+		'unknown': 'status-unknown',
+		'granted': 'status-granted',
+		'denied': 'status-denied',
+		'error': 'status-error'
+	}[notificationPermissionStatus] || 'status-unknown');
+
+	let notificationStatusText = $derived({
+		'unknown': 'Unknown',
+		'granted': 'Granted ✅',
+		'denied': 'Denied ❌',
+		'error': 'Error ⚠️'
+	}[notificationPermissionStatus] || 'Unknown');
 
 	function addLog(message, type = 'info') {
 		const timestamp = new Date().toLocaleTimeString();
@@ -75,23 +89,6 @@
 		}
 	}
 
-	async function autoInitializePermissions() {
-		addLog('=== Auto-initializing audio permissions ===', 'info');
-
-		// First, check current status
-		const hasPermission = await performPermissionCheck();
-
-		if (!hasPermission && permissionStatus !== 'error') {
-			addLog('Permission not granted, automatically requesting...', 'info');
-			await performPermissionRequest();
-		} else if (hasPermission) {
-			addLog('Permission already granted!', 'success');
-		}
-
-		autoCheckComplete = true;
-		addLog('=== Auto-initialization complete ===', 'info');
-	}
-
 	// Manual check button handler
 	async function manualCheckPermission() {
 		await performPermissionCheck();
@@ -100,6 +97,44 @@
 	// Manual request button handler
 	async function manualRequestPermission() {
 		await performPermissionRequest();
+	}
+
+	// Notification permission check
+	async function checkNotificationPermission() {
+		isLoading = true;
+		addLog('Checking notification permission status...', 'info');
+
+		try {
+			const result = await checkPermission({ permissionType: PermissionType.Notification });
+			addLog(`Notification permission check result: ${JSON.stringify(result)}`, 'success');
+			notificationPermissionStatus = result.granted ? 'granted' : 'denied';
+			return result.granted;
+		} catch (error) {
+			addLog(`Notification permission check failed: ${error}`, 'error');
+			notificationPermissionStatus = 'error';
+			return false;
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Notification permission request
+	async function requestNotificationPermission() {
+		isLoading = true;
+		addLog('Requesting notification permission...', 'info');
+
+		try {
+			const result = await requestPermission({ permissionType: PermissionType.Notification });
+			addLog(`Notification permission request result: ${JSON.stringify(result)}`, 'success');
+			notificationPermissionStatus = result.granted ? 'granted' : 'denied';
+			return result.granted;
+		} catch (error) {
+			addLog(`Notification permission request failed: ${error}`, 'error');
+			notificationPermissionStatus = 'error';
+			return false;
+		} finally {
+			isLoading = false;
+		}
 	}
 
 	// Recording functions
@@ -229,7 +264,8 @@
 
 	// Auto-initialize on component mount
 	onMount(() => {
-		autoInitializePermissions();
+		// Don't auto-initialize - let user explicitly request permissions
+		addLog('App initialized. Use the controls below to test permissions.', 'info');
 	});
 
 	// Cleanup on unmount
@@ -251,30 +287,6 @@
     <a href="https://svelte.dev" target="_blank">
       <img src="/svelte.svg" class="logo svelte" alt="Svelte Logo" />
     </a>
-  </div>
-
-  <div class="status-section">
-    <h2>Audio Permission Status</h2>
-    <div class="status-indicator {statusClass}">
-      {statusText}
-      {#if isLoading}
-        <span class="spinner">🔄</span>
-      {/if}
-    </div>
-
-    {#if autoCheckComplete}
-      <p class="status-description">
-        {#if permissionStatus === 'granted'}
-          Your app has permission to access the microphone for audio recording.
-        {:else if permissionStatus === 'denied'}
-          Audio recording permission was denied. Some features may not work.
-        {:else if permissionStatus === 'error'}
-          An error occurred while checking permissions. Check the logs below.
-        {/if}
-      </p>
-    {:else}
-      <p class="status-description">Initializing permissions...</p>
-    {/if}
   </div>
 
   <div class="recording-section">
@@ -329,21 +341,56 @@
   </div>
 
   <div class="controls-section">
-    <h3>Permission Controls</h3>
+    <h3>Audio Permission Controls</h3>
+    <div class="status-indicator {statusClass}">
+      {statusText}
+      {#if isLoading}
+        <span class="spinner">🔄</span>
+      {/if}
+    </div>
     <button
       onclick="{manualCheckPermission}"
       disabled={isLoading}
       class="btn btn-secondary"
     >
-      {isLoading ? 'Checking...' : 'Check Permission'}
+      {isLoading ? 'Checking...' : 'Check Audio Permission'}
     </button>
     <button
       onclick="{manualRequestPermission}"
       disabled={isLoading}
       class="btn btn-primary"
     >
-      {isLoading ? 'Requesting...' : 'Request Permission'}
+      {isLoading ? 'Requesting...' : 'Request Audio Permission'}
     </button>
+  </div>
+
+  <div class="controls-section">
+    <h3>Notification Permission Controls</h3>
+    <div class="status-indicator {notificationStatusClass}">
+      {notificationStatusText}
+      {#if isLoading}
+        <span class="spinner">🔄</span>
+      {/if}
+    </div>
+    <button
+      onclick="{checkNotificationPermission}"
+      disabled={isLoading}
+      class="btn btn-secondary"
+    >
+      {isLoading ? 'Checking...' : 'Check Notification Permission'}
+    </button>
+    <button
+      onclick="{requestNotificationPermission}"
+      disabled={isLoading}
+      class="btn btn-primary"
+    >
+      {isLoading ? 'Requesting...' : 'Request Notification Permission'}
+    </button>
+    <p class="help-text">
+      Test notification permissions independently of the foreground service.
+      On Android 13+, this permission is required for foreground service notifications.
+      On iOS, this allows the app to show notification banners.
+    </p>
   </div>
 
   <div class="logs-section">
