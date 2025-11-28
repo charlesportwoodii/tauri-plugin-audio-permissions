@@ -2,7 +2,10 @@ import Foundation
 import AVFoundation
 
 class AudioPermission {
-    private let audioSession: AVAudioSession = AVAudioSession.sharedInstance()
+    // Lazy initialization - only access AVAudioSession when actually needed
+    private var audioSession: AVAudioSession {
+        return AVAudioSession.sharedInstance()
+    }
 
     func checkPermission() -> Bool {
         let permission = audioSession.recordPermission

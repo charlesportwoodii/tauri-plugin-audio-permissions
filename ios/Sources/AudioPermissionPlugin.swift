@@ -14,9 +14,13 @@ class NotificationArgs: Decodable {
 }
 
 class AudioPermissionPlugin: Plugin {
-  private let audioPermission = AudioPermission()
-  private let notificationPermission = NotificationPermission()
-  private let audioSession: AVAudioSession = AVAudioSession.sharedInstance()
+  // Lazy initialization - only create when first accessed to avoid triggering permission prompts at app launch
+  private lazy var audioPermission = AudioPermission()
+  private lazy var notificationPermission = NotificationPermission()
+  // Use computed property to lazily access AVAudioSession only when needed
+  private var audioSession: AVAudioSession {
+    return AVAudioSession.sharedInstance()
+  }
   private var isSessionActive: Bool = false
 
   @objc public func requestPermission(_ invoke: Invoke) throws {
