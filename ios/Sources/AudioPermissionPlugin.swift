@@ -79,11 +79,19 @@ class AudioPermissionPlugin: Plugin {
   }
 
   @objc public func stopForegroundService(_ invoke: Invoke) throws {
+    // If session was never started from our perspective, just return success
+    guard isSessionActive else {
+      invoke.resolve(["stopped": true])
+      return
+    }
+
     do {
       try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
       isSessionActive = false
       invoke.resolve(["stopped": true])
     } catch {
+      // Mark as inactive from our tracking, but report the error
+      isSessionActive = false
       invoke.reject("Failed to stop audio session: \(error.localizedDescription)")
     }
   }
@@ -96,7 +104,16 @@ class AudioPermissionPlugin: Plugin {
   }
 
   @objc public func isServiceRunning(_ invoke: Invoke) throws {
-    invoke.resolve(["running": isSessionActive])
+    // Check actual iOS session state, not just our tracking variable
+    // This handles cases where the session persists across page navigations
+    let sessionCategory = audioSession.category
+    let isPlayAndRecord = sessionCategory == .playAndRecord
+
+    // If iOS says we're in playAndRecord mode, the session is active
+    // regardless of our isSessionActive tracking variable
+    let actuallyRunning = isPlayAndRecord || isSessionActive
+
+    invoke.resolve(["running": actuallyRunning])
   }
 }
 
