@@ -17,6 +17,7 @@ thiserror = "^2"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"
 cocoa = "0.26"
+block = "0.1"
 
 [build-dependencies]
 tauri-plugin = { version = "^2", features = ["build"] }

@@ -2,6 +2,16 @@
 
 A Tauri v2 plugin that provides a comprehensive API for managing audio recording permissions and background audio sessions on mobile platforms. Built for use with Rodio/CPAL audio libraries.
 
+## Platform Support
+
+| Platform | Support |
+|----------|---------|
+| Linux    | X       |
+| Windows  | ✓       |
+| macOS    | ✓       |
+| Android  | ✓       |
+| iOS      | ✓       |
+
 ## Features
 
 - ✅ **Complete Permission Management** - Request and check microphone and notification permissions
@@ -9,9 +19,7 @@ A Tauri v2 plugin that provides a comprehensive API for managing audio recording
 - ✅ **Foreground Service Management** - Android foreground service with notifications
 - ✅ **Audio Session Control** - iOS AVAudioSession management
 - ✅ **Platform Parity** - Identical API across Android and iOS
-- ✅ **Auto Configuration** - Automatic manifest/Info.plist injection
 - ✅ **Unified Permission API** - Single API for multiple permission types (audio, notification)
-- ✅ **Desktop Support** - Returns granted by default (desktop platforms don't require explicit audio permissions)
 
 ## Installation
 

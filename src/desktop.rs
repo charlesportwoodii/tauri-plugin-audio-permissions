@@ -3,13 +3,20 @@ use tauri::{plugin::PluginApi, AppHandle, Runtime};
 
 use crate::models::*;
 
-
 #[cfg(target_os = "macos")]
-use objc::runtime::{Object, Class};
+use objc::runtime::{Class, Object, BOOL, YES};
 #[cfg(target_os = "macos")]
 use objc::{msg_send, sel, sel_impl};
 #[cfg(target_os = "macos")]
-use std::ffi::CStr;
+use block::ConcreteBlock;
+#[cfg(target_os = "macos")]
+use std::sync::mpsc;
+
+#[cfg(target_os = "macos")]
+#[link(name = "AVFoundation", kind = "framework")]
+extern "C" {
+    static AVMediaTypeAudio: *mut Object;
+}
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
   app: &AppHandle<R>,
@@ -20,13 +27,12 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 
 /// Access to the audio-permissions APIs.
 ///
-/// # Async Implementation Notes
+/// # Platform Notes
 ///
-/// ## MacOS
-/// TODO: The macOS implementation currently passes a null completion handler to
-/// requestAccessForMediaType, which doesn't properly await the user's response.
-/// This should be updated to use a proper completion handler and resolve the promise
-/// when the user responds to the permission dialog, similar to the Android implementation.
+/// ## macOS
+/// The macOS implementation uses AVFoundation's AVCaptureDevice API to check and request
+/// microphone permissions. Permission requests are properly awaited using a completion handler
+/// block, so the function will block until the user responds to the permission dialog.
 ///
 /// ## Windows/Linux
 /// Desktop platforms typically don't require explicit permission requests for microphone access.
@@ -97,9 +103,8 @@ pub fn check_microphone_permission() -> crate::Result<bool> {
                 crate::Error::Platform("AVCaptureDevice class not found".to_string())
             })?;
 
-            // Get the authorization status for audio
-            let audio_media_type: *mut Object = msg_send![av_capture_device_class, mediaTypeAudio];
-            let auth_status: i32 = msg_send![av_capture_device_class, authorizationStatusForMediaType: audio_media_type];
+            // Use the AVMediaTypeAudio constant from AVFoundation framework
+            let auth_status: i32 = msg_send![av_capture_device_class, authorizationStatusForMediaType: AVMediaTypeAudio];
 
             // AVAuthorizationStatus values:
             // AVAuthorizationStatusNotDetermined = 0
@@ -122,14 +127,39 @@ pub fn request_microphone_permission() -> crate::Result<bool> {
                 crate::Error::Platform("AVCaptureDevice class not found".to_string())
             })?;
 
-            let audio_media_type: *mut Object = msg_send![av_capture_device_class, mediaTypeAudio];
+            // First check current status - if already determined, return that
+            let auth_status: i32 = msg_send![av_capture_device_class, authorizationStatusForMediaType: AVMediaTypeAudio];
 
-            // Request access - this is async but we'll return the current status
-            let _: () = msg_send![av_capture_device_class, requestAccessForMediaType: audio_media_type completionHandler: null::<*const Object>()];
+            // AVAuthorizationStatusNotDetermined = 0 - need to request
+            // AVAuthorizationStatusRestricted = 1 - return false
+            // AVAuthorizationStatusDenied = 2 - return false
+            // AVAuthorizationStatusAuthorized = 3 - return true
+            if auth_status != 0 {
+                return Ok(auth_status == 3);
+            }
 
-            // Return current status (user will need to check again after permission dialog)
-            let auth_status: i32 = msg_send![av_capture_device_class, authorizationStatusForMediaType: audio_media_type];
-            Ok(auth_status == 3) // AVAuthorizationStatusAuthorized
+            // Status is undetermined, need to request permission
+            // Create a channel to receive the result from the completion handler
+            let (tx, rx) = mpsc::channel::<bool>();
+
+            // Create a completion handler block
+            let completion_handler = ConcreteBlock::new(move |granted: BOOL| {
+                let _ = tx.send(granted == YES);
+            });
+            let completion_handler = completion_handler.copy();
+
+            // Request access with the completion handler
+            let _: () = msg_send![av_capture_device_class, requestAccessForMediaType: AVMediaTypeAudio completionHandler: &*completion_handler];
+
+            // Wait for the user's response (blocking)
+            match rx.recv() {
+                Ok(granted) => Ok(granted),
+                Err(_) => {
+                    // Channel closed unexpectedly, check status as fallback
+                    let status: i32 = msg_send![av_capture_device_class, authorizationStatusForMediaType: AVMediaTypeAudio];
+                    Ok(status == 3)
+                }
+            }
         }
     }
 
