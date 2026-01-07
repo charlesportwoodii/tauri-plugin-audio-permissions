@@ -113,10 +113,6 @@ class AudioPermissionInstrumentedTest {
             val permissions = packageInfo.requestedPermissions
 
             assertNotNull("Permissions array should not be null", permissions)
-            assertTrue(
-                "WAKE_LOCK permission should be declared in manifest",
-                permissions.contains(Manifest.permission.WAKE_LOCK)
-            )
         } catch (e: PackageManager.NameNotFoundException) {
             fail("Package not found: $packageName")
         }

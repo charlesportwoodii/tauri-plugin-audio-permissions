@@ -38,7 +38,6 @@ class AudioRecordingService : Service() {
         super.onCreate()
         Log.d(TAG, "Service created")
         createNotificationChannel()
-        acquireWakeLock()
     }
 
     override fun onBind(intent: Intent?): IBinder {
@@ -116,17 +115,6 @@ class AudioRecordingService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build()
-    }
-
-    private fun acquireWakeLock() {
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "$TAG::AudioRecordingWakeLock"
-        ).apply {
-            acquire(10 * 60 * 1000L) // 10 minutes timeout for safety
-        }
-        Log.d(TAG, "Wake lock acquired")
     }
 
     private fun releaseWakeLock() {

@@ -57,15 +57,6 @@ class AudioPermissionUnitTest {
     }
 
     @Test
-    fun testWakeLockPermission() {
-        // Verify wake lock permission constant
-        val expectedPermission = "android.permission.WAKE_LOCK"
-        val actualPermission = android.Manifest.permission.WAKE_LOCK
-
-        assertEquals("WAKE_LOCK permission constant should match", expectedPermission, actualPermission)
-    }
-
-    @Test
     fun testPluginPackageName() {
         // Verify our package name is correctly formatted
         val packageName = "com.alaydriem.bvc.plugin.audio_permissions"
