@@ -15,7 +15,7 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
   api: PluginApi<R, C>,
 ) -> crate::Result<AudioPermissions<R>> {
   #[cfg(target_os = "android")]
-  let handle = api.register_android_plugin("com.alaydriem.bvc.plugin.audio_permissions", "AudioPermissionPlugin")?;
+  let handle = api.register_android_plugin("com.charlesportwoodii.tauri.plugin.audio_permissions", "AudioPermissionPlugin")?;
   #[cfg(target_os = "ios")]
   let handle = api.register_ios_plugin(init_plugin_audio_permissions)?;
   Ok(AudioPermissions(handle))
