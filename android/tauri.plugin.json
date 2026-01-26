@@ -1,5 +1,5 @@
 {
   "android": {
-    "kotlin": "com.alaydriem.bvc.plugin.audio_permissions.AudioPermissionPlugin"
+    "kotlin": "com.charlesportwoodii.tauri.plugin.audio_permissions.AudioPermissionPlugin"
   }
 }

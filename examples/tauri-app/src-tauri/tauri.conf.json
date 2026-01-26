@@ -1,7 +1,7 @@
 {
   "productName": "tauri-app",
   "version": "0.1.0",
-  "identifier": "com.alaydriem.bvc.plugin.audio-permissions.dev",
+  "identifier": "com.charlesportwoodii.tauri.plugin.audio-permissions",
   "build": {
     "beforeDevCommand": "yarn dev",
     "beforeBuildCommand": "yarn build",

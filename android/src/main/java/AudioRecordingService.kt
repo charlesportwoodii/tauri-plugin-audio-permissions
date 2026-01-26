@@ -1,4 +1,4 @@
-package com.alaydriem.bvc.plugin.audio_permissions
+package com.charlesportwoodii.tauri.plugin.audio_permissions
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -26,8 +26,8 @@ class AudioRecordingService : Service() {
         private const val CHANNEL_NAME = "Audio Recording"
 
         // Actions for service control
-        const val ACTION_START_RECORDING = "com.alaydriem.bvc.START_RECORDING"
-        const val ACTION_STOP_RECORDING = "com.alaydriem.bvc.STOP_RECORDING"
+        const val ACTION_START_RECORDING = "com.charlesportwoodii.tauri.plugin.audio_permissions.START_RECORDING"
+        const val ACTION_STOP_RECORDING = "com.charlesportwoodii.tauri.plugin.audio_permissions.STOP_RECORDING"
     }
 
     inner class AudioRecordingBinder : Binder() {

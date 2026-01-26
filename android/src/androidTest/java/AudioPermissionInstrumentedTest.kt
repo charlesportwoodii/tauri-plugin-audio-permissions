@@ -1,4 +1,4 @@
-package com.alaydriem.bvc.plugin.audio_permissions
+package com.charlesportwoodii.tauri.plugin.audio_permissions
 
 import android.Manifest
 import android.content.Context
@@ -33,7 +33,7 @@ class AudioPermissionInstrumentedTest {
     @Test
     fun useAppContext() {
         // Context of the app under test.
-        assertEquals("com.alaydriem.bvc.plugin.audio_permissions", appContext.packageName)
+        assertEquals("com.charlesportwoodii.tauri.plugin.audio_permissions", appContext.packageName)
     }
 
     @Test
@@ -187,12 +187,12 @@ class AudioPermissionInstrumentedTest {
 
         assertEquals(
             "Start action should match expected value",
-            "com.alaydriem.bvc.START_RECORDING",
+            "com.charlesportwoodii.tauri.plugin.audio_permissions.START_RECORDING",
             startIntent.action
         )
         assertEquals(
             "Stop action should match expected value",
-            "com.alaydriem.bvc.STOP_RECORDING",
+            "com.charlesportwoodii.tauri.plugin.audio_permissions.STOP_RECORDING",
             stopIntent.action
         )
         assertNotEquals("Actions should be different", startIntent.action, stopIntent.action)

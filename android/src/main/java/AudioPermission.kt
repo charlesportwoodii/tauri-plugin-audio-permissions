@@ -1,4 +1,4 @@
-package com.alaydriem.bvc.plugin.audio_permissions
+package com.charlesportwoodii.tauri.plugin.audio_permissions
 
 import android.Manifest
 import android.app.Activity

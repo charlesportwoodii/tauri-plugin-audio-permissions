@@ -1,4 +1,4 @@
-package com.alaydriem.bvc.plugin.audio_permissions
+package com.charlesportwoodii.tauri.plugin.audio_permissions
 
 import org.junit.Test
 import org.junit.Assert.*
@@ -59,7 +59,7 @@ class AudioPermissionUnitTest {
     @Test
     fun testPluginPackageName() {
         // Verify our package name is correctly formatted
-        val packageName = "com.alaydriem.bvc.plugin.audio_permissions"
+        val packageName = "com.charlesportwoodii.tauri.plugin.audio_permissions"
 
         // Basic validation that package name follows expected format
         assertTrue("Package name should contain plugin identifier", packageName.contains("plugin"))
@@ -85,8 +85,8 @@ class AudioPermissionUnitTest {
     @Test
     fun testServiceActionConstants() {
         // Test that service action constants match expected format
-        val startAction = "com.alaydriem.bvc.START_RECORDING"
-        val stopAction = "com.alaydriem.bvc.STOP_RECORDING"
+        val startAction = "com.charlesportwoodii.tauri.plugin.audio_permissions.START_RECORDING"
+        val stopAction = "com.charlesportwoodii.tauri.plugin.audio_permissions.STOP_RECORDING"
 
         assertTrue("Start action should contain START_RECORDING", startAction.contains("START_RECORDING"))
         assertTrue("Stop action should contain STOP_RECORDING", stopAction.contains("STOP_RECORDING"))
