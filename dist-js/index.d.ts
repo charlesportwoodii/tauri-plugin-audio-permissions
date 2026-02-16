@@ -21,9 +21,14 @@ export interface NotificationUpdate {
     title?: string;
     message?: string;
 }
+export interface MicrophoneAvailabilityResponse {
+    available: boolean;
+    toggleSupported: boolean;
+}
 export declare function requestPermission(request?: PermissionRequest): Promise<PermissionResponse>;
 export declare function checkPermission(request?: PermissionRequest): Promise<PermissionResponse>;
 export declare function startForegroundService(): Promise<ServiceResponse>;
 export declare function stopForegroundService(): Promise<ServiceResponse>;
 export declare function updateNotification(update: NotificationUpdate): Promise<ServiceResponse>;
 export declare function isServiceRunning(): Promise<ServiceStatusResponse>;
+export declare function isMicrophoneAvailable(): Promise<MicrophoneAvailabilityResponse>;

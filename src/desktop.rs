@@ -93,6 +93,13 @@ impl<R: Runtime> AudioPermissions<R> {
   pub fn is_service_running(&self) -> crate::Result<ServiceStatusResponse> {
     Ok(ServiceStatusResponse { running: false })
   }
+
+  pub fn is_microphone_available(&self) -> crate::Result<MicrophoneAvailabilityResponse> {
+    Ok(MicrophoneAvailabilityResponse {
+      available: true,
+      toggle_supported: false,
+    })
+  }
 }
 
 pub fn check_microphone_permission() -> crate::Result<bool> {

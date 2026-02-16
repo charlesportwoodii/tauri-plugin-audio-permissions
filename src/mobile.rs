@@ -80,4 +80,11 @@ impl<R: Runtime> AudioPermissions<R> {
       .run_mobile_plugin("isServiceRunning", ())
       .map_err(Into::into)
   }
+
+  pub fn is_microphone_available(&self) -> crate::Result<MicrophoneAvailabilityResponse> {
+    self
+      .0
+      .run_mobile_plugin("isMicrophoneAvailable", ())
+      .map_err(Into::into)
+  }
 }

@@ -71,9 +71,13 @@ async function updateNotification(update) {
 async function isServiceRunning() {
     return await core.invoke('plugin:audio-permissions|is_service_running');
 }
+async function isMicrophoneAvailable() {
+    return await core.invoke('plugin:audio-permissions|is_microphone_available');
+}
 
 exports.PermissionType = PermissionType;
 exports.checkPermission = checkPermission;
+exports.isMicrophoneAvailable = isMicrophoneAvailable;
 exports.isServiceRunning = isServiceRunning;
 exports.requestPermission = requestPermission;
 exports.startForegroundService = startForegroundService;

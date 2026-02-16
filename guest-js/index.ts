@@ -30,6 +30,11 @@ export interface NotificationUpdate {
   message?: string;
 }
 
+export interface MicrophoneAvailabilityResponse {
+  available: boolean;
+  toggleSupported: boolean;
+}
+
 /**
  * Wraps a promise with a timeout to prevent hanging UI
  * @param promise The promise to wrap
@@ -103,4 +108,8 @@ export async function updateNotification(update: NotificationUpdate): Promise<Se
 
 export async function isServiceRunning(): Promise<ServiceStatusResponse> {
   return await invoke<ServiceStatusResponse>('plugin:audio-permissions|is_service_running');
+}
+
+export async function isMicrophoneAvailable(): Promise<MicrophoneAvailabilityResponse> {
+  return await invoke<MicrophoneAvailabilityResponse>('plugin:audio-permissions|is_microphone_available');
 }

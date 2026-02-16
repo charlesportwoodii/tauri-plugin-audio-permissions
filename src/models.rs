@@ -46,3 +46,10 @@ pub struct ServiceResponse {
 pub struct ServiceStatusResponse {
   pub running: bool,
 }
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MicrophoneAvailabilityResponse {
+  pub available: bool,
+  pub toggle_supported: bool,
+}

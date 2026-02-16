@@ -5,6 +5,7 @@ const COMMANDS: &[&str] = &[
   "stop_foreground_service",
   "update_notification",
   "is_service_running",
+  "is_microphone_available",
 ];
 
 fn main() {

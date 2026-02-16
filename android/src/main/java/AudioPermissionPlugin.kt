@@ -1,13 +1,17 @@
 package com.charlesportwoodii.tauri.plugin.audio_permissions
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.hardware.SensorPrivacyManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import app.tauri.PermissionState
@@ -47,8 +51,37 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
     @Volatile
     private var currentPermissionRequest: String? = null
 
+    // Fallback for when Tauri's ActivityResult callback doesn't fire
+    @Volatile
+    private var pendingPermissionInvoke: Invoke? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     companion object {
         private const val TAG = "AudioPermissionPlugin"
+    }
+
+    private fun isAppInForeground(): Boolean {
+        val appProcessInfo = ActivityManager.RunningAppProcessInfo()
+        ActivityManager.getMyMemoryState(appProcessInfo)
+        return appProcessInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+    }
+
+    private fun isMicrophoneHardwareAvailable(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val spm = activity.getSystemService(SensorPrivacyManager::class.java) ?: return true
+                // isSensorPrivacyEnabled is @SystemApi, access via reflection
+                val method = SensorPrivacyManager::class.java.getMethod(
+                    "isSensorPrivacyEnabled",
+                    Int::class.javaPrimitiveType
+                )
+                val blocked = method.invoke(spm, SensorPrivacyManager.Sensors.MICROPHONE) as Boolean
+                return !blocked
+            } catch (e: Exception) {
+                Log.w(TAG, "Unable to check sensor privacy state", e)
+            }
+        }
+        return true
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -78,6 +111,7 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         // Track which permission we're requesting
                         currentPermissionRequest = "notification"
+                        pendingPermissionInvoke = invoke
                         // Use Tauri's async permission system - it will call handlePermissionResult when user responds
                         requestPermissionForAlias("notification", invoke, "handlePermissionResult")
                         Log.d(TAG, "Requesting POST_NOTIFICATIONS permission (async via Tauri)")
@@ -91,6 +125,7 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
                 else -> {
                     // Track which permission we're requesting
                     currentPermissionRequest = "audio"
+                    pendingPermissionInvoke = invoke
                     // Default: audio permission - Use Tauri's async permission system
                     requestPermissionForAlias("audio", invoke, "handlePermissionResult")
                     Log.d(TAG, "Requesting RECORD_AUDIO permission (async via Tauri)")
@@ -103,6 +138,9 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
 
     @PermissionCallback
     fun handlePermissionResult(invoke: Invoke) {
+        // Callback fired normally - clear the fallback
+        pendingPermissionInvoke = null
+
         // Called by Tauri's permission system after user responds
         // Get the permission type that was requested
         val requestedPermission = currentPermissionRequest ?: "audio"
@@ -137,7 +175,7 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
 
             val hasPermission = when (permissionType.lowercase()) {
                 "notification" -> notificationPermission.checkPermission()
-                else -> audioPermission.checkPermission()
+                else -> audioPermission.checkPermission() && isMicrophoneHardwareAvailable()
             }
 
             val ret = JSObject()
@@ -165,6 +203,20 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
                 return
             }
 
+            // On Android 12+, starting a foreground service from the background is forbidden
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !isAppInForeground()) {
+                invoke.reject("Cannot start foreground service from background on Android 12+")
+                Log.e(TAG, "Attempted to start foreground service from background on Android 12+")
+                return
+            }
+
+            // On Android 12+, check if the microphone hardware toggle is enabled
+            if (!isMicrophoneHardwareAvailable()) {
+                invoke.reject("Microphone is disabled via device privacy settings")
+                Log.w(TAG, "Microphone blocked by device sensor privacy toggle")
+                return
+            }
+
             val intent = Intent(activity, AudioRecordingService::class.java).apply {
                 action = AudioRecordingService.ACTION_START_RECORDING
             }
@@ -187,8 +239,14 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
             invoke.resolve(ret)
             Log.d(TAG, "Foreground service started")
         } catch (e: Exception) {
-            invoke.reject("Failed to start foreground service: ${e.message}")
-            Log.e(TAG, "Error starting service", e)
+            val errorMessage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && e is android.app.ForegroundServiceStartNotAllowedException) {
+                "Cannot start foreground service from background on Android 12+: ${e.message}"
+            } else {
+                "Failed to start foreground service: ${e.message}"
+            }
+            invoke.reject(errorMessage)
+            Log.e(TAG, errorMessage, e)
         }
     }
 
@@ -241,6 +299,70 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
             invoke.resolve(ret)
         } catch (e: Exception) {
             invoke.reject("Failed to check service status: ${e.message}")
+        }
+    }
+
+    @Command
+    fun isMicrophoneAvailable(invoke: Invoke) {
+        try {
+            val ret = JSObject()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    val spm = activity.getSystemService(SensorPrivacyManager::class.java)
+                    if (spm != null) {
+                        // isSensorPrivacyEnabled is @SystemApi, access via reflection
+                        val method = SensorPrivacyManager::class.java.getMethod(
+                            "isSensorPrivacyEnabled",
+                            Int::class.javaPrimitiveType
+                        )
+                        val blocked = method.invoke(spm, SensorPrivacyManager.Sensors.MICROPHONE) as Boolean
+                        ret.put("available", !blocked)
+                        ret.put("toggleSupported", true)
+                    } else {
+                        ret.put("available", true)
+                        ret.put("toggleSupported", false)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Unable to check sensor privacy state", e)
+                    ret.put("available", true)
+                    ret.put("toggleSupported", false)
+                }
+            } else {
+                ret.put("available", true)
+                ret.put("toggleSupported", false)
+            }
+            invoke.resolve(ret)
+        } catch (e: Exception) {
+            invoke.reject("Failed to check microphone availability: ${e.message}")
+            Log.e(TAG, "Error checking microphone availability", e)
+        }
+    }
+
+    override fun onResume() {
+        // Fallback: if Tauri's ActivityResult permission callback didn't fire,
+        // resolve the pending invoke when the activity resumes after the dialog.
+        // A short delay gives the ActivityResult callback priority if it does fire.
+        if (pendingPermissionInvoke != null) {
+            mainHandler.postDelayed({
+                val pending = pendingPermissionInvoke ?: return@postDelayed
+                val requestType = currentPermissionRequest ?: "audio"
+
+                pendingPermissionInvoke = null
+                currentPermissionRequest = null
+
+                val permissionString = when (requestType) {
+                    "notification" -> android.Manifest.permission.POST_NOTIFICATIONS
+                    else -> android.Manifest.permission.RECORD_AUDIO
+                }
+                val granted = ContextCompat.checkSelfPermission(
+                    activity,
+                    permissionString
+                ) == PackageManager.PERMISSION_GRANTED
+
+                val ret = JSObject().apply { put("granted", granted) }
+                pending.resolve(ret)
+                Log.d(TAG, "Fallback permission resolution for '$requestType': granted=$granted")
+            }, 500)
         }
     }
 

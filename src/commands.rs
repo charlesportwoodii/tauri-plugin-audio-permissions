@@ -48,3 +48,10 @@ pub(crate) async fn is_service_running<R: Runtime>(
 ) -> Result<ServiceStatusResponse> {
     app.audio_permissions().is_service_running()
 }
+
+#[command]
+pub(crate) async fn is_microphone_available<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<MicrophoneAvailabilityResponse> {
+    app.audio_permissions().is_microphone_available()
+}

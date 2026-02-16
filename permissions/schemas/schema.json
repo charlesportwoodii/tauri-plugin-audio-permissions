@@ -307,6 +307,18 @@
           "markdownDescription": "Denies the check_permission command without any pre-configured scope."
         },
         {
+          "description": "Enables the is_microphone_available command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-is-microphone-available",
+          "markdownDescription": "Enables the is_microphone_available command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the is_microphone_available command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-is-microphone-available",
+          "markdownDescription": "Denies the is_microphone_available command without any pre-configured scope."
+        },
+        {
           "description": "Enables the is_service_running command without any pre-configured scope.",
           "type": "string",
           "const": "allow-is-service-running",
@@ -367,10 +379,10 @@
           "markdownDescription": "Denies the update_notification command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the audio permissions plugin\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-check-permission`\n- `allow-start-foreground-service`\n- `allow-stop-foreground-service`\n- `allow-update-notification`\n- `allow-is-service-running`",
+          "description": "Default permissions for the audio permissions plugin\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-check-permission`\n- `allow-start-foreground-service`\n- `allow-stop-foreground-service`\n- `allow-update-notification`\n- `allow-is-service-running`\n- `allow-is-microphone-available`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the audio permissions plugin\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-check-permission`\n- `allow-start-foreground-service`\n- `allow-stop-foreground-service`\n- `allow-update-notification`\n- `allow-is-service-running`"
+          "markdownDescription": "Default permissions for the audio permissions plugin\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-check-permission`\n- `allow-start-foreground-service`\n- `allow-stop-foreground-service`\n- `allow-update-notification`\n- `allow-is-service-running`\n- `allow-is-microphone-available`"
         },
         {
           "description": "Enables audio permission requests on mobile platforms only",
