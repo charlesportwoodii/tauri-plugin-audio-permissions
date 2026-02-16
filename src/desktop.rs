@@ -1,5 +1,5 @@
 use serde::de::DeserializeOwned;
-use tauri::{plugin::PluginApi, AppHandle, Runtime};
+use tauri::{ipc::Channel, plugin::PluginApi, AppHandle, Runtime};
 
 use crate::models::*;
 
@@ -66,7 +66,7 @@ impl<R: Runtime> AudioPermissions<R> {
   }
 
   // Desktop doesn't need foreground services - these are no-ops
-  pub fn start_foreground_service(&self) -> crate::Result<ServiceResponse> {
+  pub fn start_foreground_service(&self, _on_permission_revoked: Channel) -> crate::Result<ServiceResponse> {
     Ok(ServiceResponse {
       started: Some(true),
       stopped: None,
@@ -92,6 +92,13 @@ impl<R: Runtime> AudioPermissions<R> {
 
   pub fn is_service_running(&self) -> crate::Result<ServiceStatusResponse> {
     Ok(ServiceStatusResponse { running: false })
+  }
+
+  pub fn is_microphone_available(&self) -> crate::Result<MicrophoneAvailabilityResponse> {
+    Ok(MicrophoneAvailabilityResponse {
+      available: true,
+      toggle_supported: false,
+    })
   }
 }
 

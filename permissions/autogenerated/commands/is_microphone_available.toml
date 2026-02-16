@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-is-microphone-available"
+description = "Enables the is_microphone_available command without any pre-configured scope."
+commands.allow = ["is_microphone_available"]
+
+[[permission]]
+identifier = "deny-is-microphone-available"
+description = "Denies the is_microphone_available command without any pre-configured scope."
+commands.deny = ["is_microphone_available"]

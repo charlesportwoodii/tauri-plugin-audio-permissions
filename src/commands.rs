@@ -1,4 +1,4 @@
-use tauri::{AppHandle, command, Runtime};
+use tauri::{AppHandle, command, Runtime, ipc::Channel};
 
 use crate::models::*;
 use crate::Result;
@@ -23,8 +23,9 @@ pub(crate) async fn check_permission<R: Runtime>(
 #[command]
 pub(crate) async fn start_foreground_service<R: Runtime>(
     app: AppHandle<R>,
+    on_permission_revoked: Channel,
 ) -> Result<ServiceResponse> {
-    app.audio_permissions().start_foreground_service()
+    app.audio_permissions().start_foreground_service(on_permission_revoked)
 }
 
 #[command]
@@ -47,4 +48,11 @@ pub(crate) async fn is_service_running<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<ServiceStatusResponse> {
     app.audio_permissions().is_service_running()
+}
+
+#[command]
+pub(crate) async fn is_microphone_available<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<MicrophoneAvailabilityResponse> {
+    app.audio_permissions().is_microphone_available()
 }

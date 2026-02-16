@@ -10,6 +10,7 @@ Default permissions for the audio permissions plugin
 - `allow-stop-foreground-service`
 - `allow-update-notification`
 - `allow-is-service-running`
+- `allow-is-microphone-available`
 
 ## Permission Table
 
@@ -42,6 +43,32 @@ Enables the check_permission command without any pre-configured scope.
 <td>
 
 Denies the check_permission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:allow-is-microphone-available`
+
+</td>
+<td>
+
+Enables the is_microphone_available command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`audio-permissions:deny-is-microphone-available`
+
+</td>
+<td>
+
+Denies the is_microphone_available command without any pre-configured scope.
 
 </td>
 </tr>

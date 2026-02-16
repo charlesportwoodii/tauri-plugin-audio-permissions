@@ -41,7 +41,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
       commands::start_foreground_service,
       commands::stop_foreground_service,
       commands::update_notification,
-      commands::is_service_running
+      commands::is_service_running,
+      commands::is_microphone_available
     ])
     .setup(|app, api| {
       #[cfg(mobile)]

@@ -10,6 +10,10 @@ export default defineConfig({
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   // prevent Vite from obscuring rust errors
   clearScreen: false,
+  // Target Chrome 83+ to support older Android WebViews (Android 11 ships with ~v83)
+  build: {
+    target: 'chrome83',
+  },
   // tauri expects a fixed port, fail if that port is not available
   server: {
     host: host || false,

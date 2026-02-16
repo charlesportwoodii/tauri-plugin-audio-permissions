@@ -6,5 +6,6 @@ permissions = [
   "allow-start-foreground-service",
   "allow-stop-foreground-service",
   "allow-update-notification",
-  "allow-is-service-running"
+  "allow-is-service-running",
+  "allow-is-microphone-available"
 ]
