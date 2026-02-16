@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.hardware.SensorPrivacyManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -64,24 +63,6 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
         val appProcessInfo = ActivityManager.RunningAppProcessInfo()
         ActivityManager.getMyMemoryState(appProcessInfo)
         return appProcessInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-    }
-
-    private fun isMicrophoneHardwareAvailable(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                val spm = activity.getSystemService(SensorPrivacyManager::class.java) ?: return true
-                // isSensorPrivacyEnabled is @SystemApi, access via reflection
-                val method = SensorPrivacyManager::class.java.getMethod(
-                    "isSensorPrivacyEnabled",
-                    Int::class.javaPrimitiveType
-                )
-                val blocked = method.invoke(spm, SensorPrivacyManager.Sensors.MICROPHONE) as Boolean
-                return !blocked
-            } catch (e: Exception) {
-                Log.w(TAG, "Unable to check sensor privacy state", e)
-            }
-        }
-        return true
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -175,7 +156,7 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
 
             val hasPermission = when (permissionType.lowercase()) {
                 "notification" -> notificationPermission.checkPermission()
-                else -> audioPermission.checkPermission() && isMicrophoneHardwareAvailable()
+                else -> audioPermission.checkPermission()
             }
 
             val ret = JSObject()
@@ -207,13 +188,6 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !isAppInForeground()) {
                 invoke.reject("Cannot start foreground service from background on Android 12+")
                 Log.e(TAG, "Attempted to start foreground service from background on Android 12+")
-                return
-            }
-
-            // On Android 12+, check if the microphone hardware toggle is enabled
-            if (!isMicrophoneHardwareAvailable()) {
-                invoke.reject("Microphone is disabled via device privacy settings")
-                Log.w(TAG, "Microphone blocked by device sensor privacy toggle")
                 return
             }
 
@@ -306,31 +280,13 @@ class AudioPermissionPlugin(private val activity: Activity): Plugin(activity) {
     fun isMicrophoneAvailable(invoke: Invoke) {
         try {
             val ret = JSObject()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                try {
-                    val spm = activity.getSystemService(SensorPrivacyManager::class.java)
-                    if (spm != null) {
-                        // isSensorPrivacyEnabled is @SystemApi, access via reflection
-                        val method = SensorPrivacyManager::class.java.getMethod(
-                            "isSensorPrivacyEnabled",
-                            Int::class.javaPrimitiveType
-                        )
-                        val blocked = method.invoke(spm, SensorPrivacyManager.Sensors.MICROPHONE) as Boolean
-                        ret.put("available", !blocked)
-                        ret.put("toggleSupported", true)
-                    } else {
-                        ret.put("available", true)
-                        ret.put("toggleSupported", false)
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Unable to check sensor privacy state", e)
-                    ret.put("available", true)
-                    ret.put("toggleSupported", false)
-                }
-            } else {
-                ret.put("available", true)
-                ret.put("toggleSupported", false)
-            }
+            // Android 12+ has a device-wide microphone toggle in Settings > Privacy.
+            // The toggle state requires android.permission.OBSERVE_SENSOR_PRIVACY
+            // (a system-level permission), so third-party apps cannot query it.
+            // We report whether the toggle feature exists so the frontend can
+            // warn users to check their privacy settings if they get silent audio.
+            ret.put("available", audioPermission.checkPermission())
+            ret.put("toggleSupported", Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             invoke.resolve(ret)
         } catch (e: Exception) {
             invoke.reject("Failed to check microphone availability: ${e.message}")
