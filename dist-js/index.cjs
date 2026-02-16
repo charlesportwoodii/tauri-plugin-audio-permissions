@@ -57,8 +57,14 @@ async function checkPermission(request) {
         throw error;
     }
 }
-async function startForegroundService() {
-    return await core.invoke('plugin:audio-permissions|start_foreground_service');
+async function startForegroundService(options) {
+    const channel = new core.Channel();
+    if (options?.onPermissionRevoked) {
+        channel.onmessage = options.onPermissionRevoked;
+    }
+    return await core.invoke('plugin:audio-permissions|start_foreground_service', {
+        onPermissionRevoked: channel,
+    });
 }
 async function stopForegroundService() {
     return await core.invoke('plugin:audio-permissions|stop_foreground_service');

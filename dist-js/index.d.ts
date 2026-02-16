@@ -25,9 +25,16 @@ export interface MicrophoneAvailabilityResponse {
     available: boolean;
     toggleSupported: boolean;
 }
+export interface PermissionChangeEvent {
+    permissionType: string;
+    granted: boolean;
+}
+export interface StartForegroundServiceOptions {
+    onPermissionRevoked?: (event: PermissionChangeEvent) => void;
+}
 export declare function requestPermission(request?: PermissionRequest): Promise<PermissionResponse>;
 export declare function checkPermission(request?: PermissionRequest): Promise<PermissionResponse>;
-export declare function startForegroundService(): Promise<ServiceResponse>;
+export declare function startForegroundService(options?: StartForegroundServiceOptions): Promise<ServiceResponse>;
 export declare function stopForegroundService(): Promise<ServiceResponse>;
 export declare function updateNotification(update: NotificationUpdate): Promise<ServiceResponse>;
 export declare function isServiceRunning(): Promise<ServiceStatusResponse>;

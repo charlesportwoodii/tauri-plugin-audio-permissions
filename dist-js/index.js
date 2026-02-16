@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, Channel } from '@tauri-apps/api/core';
 
 const PermissionType = {
     Audio: 'audio',
@@ -55,8 +55,14 @@ async function checkPermission(request) {
         throw error;
     }
 }
-async function startForegroundService() {
-    return await invoke('plugin:audio-permissions|start_foreground_service');
+async function startForegroundService(options) {
+    const channel = new Channel();
+    if (options?.onPermissionRevoked) {
+        channel.onmessage = options.onPermissionRevoked;
+    }
+    return await invoke('plugin:audio-permissions|start_foreground_service', {
+        onPermissionRevoked: channel,
+    });
 }
 async function stopForegroundService() {
     return await invoke('plugin:audio-permissions|stop_foreground_service');

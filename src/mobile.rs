@@ -1,5 +1,6 @@
 use serde::de::DeserializeOwned;
 use tauri::{
+  ipc::Channel,
   plugin::{PluginApi, PluginHandle},
   AppHandle, Runtime,
 };
@@ -53,10 +54,10 @@ impl<R: Runtime> AudioPermissions<R> {
       .map_err(Into::into)
   }
 
-  pub fn start_foreground_service(&self) -> crate::Result<ServiceResponse> {
+  pub fn start_foreground_service(&self, on_permission_revoked: Channel) -> crate::Result<ServiceResponse> {
     self
       .0
-      .run_mobile_plugin("startForegroundService", ())
+      .run_mobile_plugin("startForegroundService", serde_json::json!({ "onPermissionRevoked": on_permission_revoked }))
       .map_err(Into::into)
   }
 

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, Channel } from '@tauri-apps/api/core'
 
 export const PermissionType = {
   Audio: 'audio',
@@ -33,6 +33,15 @@ export interface NotificationUpdate {
 export interface MicrophoneAvailabilityResponse {
   available: boolean;
   toggleSupported: boolean;
+}
+
+export interface PermissionChangeEvent {
+  permissionType: string;
+  granted: boolean;
+}
+
+export interface StartForegroundServiceOptions {
+  onPermissionRevoked?: (event: PermissionChangeEvent) => void;
 }
 
 /**
@@ -92,8 +101,16 @@ export async function checkPermission(request?: PermissionRequest): Promise<Perm
   }
 }
 
-export async function startForegroundService(): Promise<ServiceResponse> {
-  return await invoke<ServiceResponse>('plugin:audio-permissions|start_foreground_service');
+export async function startForegroundService(
+  options?: StartForegroundServiceOptions
+): Promise<ServiceResponse> {
+  const channel = new Channel<PermissionChangeEvent>();
+  if (options?.onPermissionRevoked) {
+    channel.onmessage = options.onPermissionRevoked;
+  }
+  return await invoke<ServiceResponse>('plugin:audio-permissions|start_foreground_service', {
+    onPermissionRevoked: channel,
+  });
 }
 
 export async function stopForegroundService(): Promise<ServiceResponse> {
