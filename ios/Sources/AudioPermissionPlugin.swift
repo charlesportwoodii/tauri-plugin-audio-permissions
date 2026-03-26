@@ -68,7 +68,7 @@ class AudioPermissionPlugin: Plugin {
 
     do {
       // Configure audio session for background recording
-      try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+      try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
       try audioSession.setActive(true)
 
       isSessionActive = true
