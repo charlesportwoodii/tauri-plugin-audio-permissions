@@ -118,6 +118,6 @@ class AudioPermissionPlugin: Plugin {
 }
 
 @_cdecl("init_plugin_audio_permissions")
-func initPlugin() -> Plugin {
+public func initPlugin() -> Plugin {
   return AudioPermissionPlugin()
 }
